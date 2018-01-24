@@ -16,7 +16,6 @@ class WsDelegate: WebSocketDelegate {
     }
     
     func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
-        print("Websocket receive msg")
         socketMsgDelegate?.websocketDidReceiveMessage(text)
     }
     

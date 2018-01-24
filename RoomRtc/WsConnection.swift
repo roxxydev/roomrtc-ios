@@ -3,30 +3,27 @@ import Starscream
 
 class WsConnection {
     
-    let socket: WebSocket? = WebSocket(url: URL(string: Config.websocketServer)!)
+    private var socket: WebSocket?
+    private var wsDelegate: WsDelegate?
+    private var wsMsgDelegate: WsSocketMsgDelegate?
     
     func assignSocketDelegate(_ delegate: WsDelegate?) -> WsConnection {
-        guard delegate != nil else {
+        guard let socketDelegate = delegate else {
             print("Error trying to assign nil to socket delegate")
             return self
         }
-        socket?.delegate = delegate
+        wsDelegate = socketDelegate
+        socket?.delegate = wsDelegate
         return self
     }
     
     func assignSocketMsgDelegate(_ socketMsgDelegate: WsSocketMsgDelegate?) -> WsConnection {
-        guard socketMsgDelegate != nil else {
-            print("Error trying to assign nil to socket delegate")
-            return self
-        }
-        let delegate = socket?.delegate as? WsDelegate
-        
-        guard delegate != nil, let socketDelegate = delegate else {
+        guard let socketDelegate = wsDelegate else {
             print("Error trying to assign message delegate to nil socket delegate")
             return self
         }
-        socketDelegate.socketMsgDelegate = socketMsgDelegate
-
+        wsMsgDelegate = socketMsgDelegate
+        socketDelegate.socketMsgDelegate = wsMsgDelegate
         return self
     }
     
@@ -39,12 +36,21 @@ class WsConnection {
         return self
     }
     
-    func connect() {
-        guard socket != nil else {
-            print("Error socket not initialized yet")
-            return
+    func connect(sessionId: String?) {
+        var request = URLRequest(url: URL(string: Config.websocketServer)!)
+        
+        if let id = sessionId {
+            request.setValue(id, forHTTPHeaderField: Config.websocketSessionHeaderName)
         }
-        socket?.connect()
+        socket = WebSocket(request: request)
+        
+        // Reassign default socket delegate each connect
+        let _ = assignSocketDelegate(wsDelegate)
+                .assignSocketMsgDelegate(wsMsgDelegate)
+        
+        if let isConnected = socket?.isConnected, isConnected == false {
+            socket?.connect()
+        }
     }
     
     func disconnect() {
@@ -53,6 +59,7 @@ class WsConnection {
             return
         }
         socket?.disconnect(forceTimeout: 0)
+        socket = nil
     }
     
     func sendMsg(_ text: String) {

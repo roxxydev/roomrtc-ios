@@ -12,14 +12,12 @@ let mainStore = Store<AppState>(
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-
     let wsConnection = WsConnection()
-    var wsDelegate = WsDelegate()
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
 
         RTCInitializeSSL()
-        wsConnection.assignSocketDelegate(wsDelegate).connect()
+        let _ = wsConnection.assignSocketDelegate(WsDelegate())
 
         return true
     }

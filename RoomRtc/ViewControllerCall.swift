@@ -7,19 +7,22 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     typealias StoreSubscriberStateType = AppState
     
     @IBOutlet weak var uiLabelParticipants: UILabel!
-    
     @IBOutlet weak var videoViewA: UIView!
     @IBOutlet weak var videoViewB: UIView!
     @IBOutlet weak var btnStartCall: UIButton!
     @IBOutlet weak var btnEndCall: UIButton!
     @IBOutlet weak var btnAcceptCall: UIButton!
     @IBOutlet weak var btnRejectCall: UIButton!
-    
     @IBOutlet weak var indicatorView: UIActivityIndicatorView!
 
     let rtcAction = RtcAction()
     
     override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let wsSessionId = UserDefaults.standard.string(forKey: "username")
+        setUpWsConnection(wsSessionId)
+
         rtcAction.initRtcAction(localVideoView: videoViewA, remoteVideoView: videoViewB, sdpCreateDelegate: self, callStateDelegate: self)
         mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .standby))
     }
@@ -33,6 +36,8 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
 
     override func websocketDidReceiveMessage(_ text: String) {
+        super.websocketDidReceiveMessage(text)
+
         if let msg = try? JSONSerialization.jsonObject(with: text.data(using: .utf8)!) as? ModelChatAppMsg {
 
             if let sdpOffer = msg?.sdpOffer {
@@ -50,26 +55,26 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
                     break
                 case .leave:
                     mainStore.dispatch(ActionUpdateRoomParticipants(someoneJoined: false, someoneLeave: true))
-                    break;
+                    break
                 case .calling:
-                    mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .incoming))
-                    break;
+                    mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .incomingCall))
+                    break
                 case .rejected:
                     mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .receiveRejected))
-                    break;
+                    break
                 case .accepted:
                     mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .receiveAccepted))
-                    break;
+                    break
                 case .hangup:
                     mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ended))
-                    break;
+                    break
                 }
             }
         }
     }
     
     @IBAction func onBtnStartCallClicked(_ sender: Any) {
-        mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .calling))
+        mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .userCalling))
     }
     
     @IBAction func onBtnEndCallClicked(_ sender: Any) {
@@ -91,16 +96,16 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
         let stateSdp = state.stateSdp
         
         // Update Room Participants UILabel
-        uiLabelParticipants.text? = labelRoomParticipants + String(stateRoomParticipants)
+        uiLabelParticipants.text? = Constants.txtlabelParticipants + String(stateRoomParticipants)
         
         switch stateRoom.roomStatus {
         case .standby:
             handleStateStandby()
             break
-        case .calling:
+        case .userCalling:
             handleStateCalling()
             break
-        case .incoming:
+        case .incomingCall:
             handleStateIncoming()
             break
         case .acceptCall:

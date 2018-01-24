@@ -13,25 +13,37 @@
         <!--View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="ChatApp" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="RoomRtc" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="e.g. Juan" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="ErK-S6-CST">
-                                <rect key="frame" x="56" y="179.5" width="208" height="30"/>
+                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="e.g. 1234" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="ErK-S6-CST">
+                                <rect key="frame" x="56" y="214" width="208" height="30"/>
                                 <nil key="textColor"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="words" spellCheckingType="no" keyboardType="numberPad"/>
                             </textField>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Enter your room no." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="X3G-jS-msb">
-                                <rect key="frame" x="85" y="133" width="151" height="21"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Room no." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="X3G-jS-msb">
+                                <rect key="frame" x="124" y="185" width="72.5" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="e.g. juan" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="uza-i9-9mo">
+                                <rect key="frame" x="56" y="133" width="208" height="30"/>
+                                <nil key="textColor"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <textInputTraits key="textInputTraits" textContentType="name"/>
+                            </textField>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Username" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="aYD-Jl-x0h">
+                                <rect key="frame" x="120" y="104" width="79" height="21"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WBf-GB-wek">
-                                <rect key="frame" x="132" y="217" width="56" height="30"/>
+                                <rect key="frame" x="132" y="430" width="56" height="30"/>
                                 <state key="normal" title="SUBMIT"/>
                                 <connections>
                                     <action selector="btnSubmit:" destination="BYZ-38-t0r" eventType="touchUpInside" id="8Wz-Vu-wXx"/>
@@ -40,18 +52,24 @@
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="aYD-Jl-x0h" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="84" id="5Ba-VU-F6k"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="ErK-S6-CST" secondAttribute="trailing" constant="56" id="BxL-Lo-jo9"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="uza-i9-9mo" secondAttribute="trailing" constant="56" id="KSi-Oy-BkE"/>
                             <constraint firstItem="WBf-GB-wek" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="QQS-xA-uQk"/>
+                            <constraint firstItem="X3G-jS-msb" firstAttribute="top" secondItem="uza-i9-9mo" secondAttribute="bottom" constant="22" id="RrM-xk-lhM"/>
+                            <constraint firstItem="uza-i9-9mo" firstAttribute="top" secondItem="aYD-Jl-x0h" secondAttribute="bottom" constant="8" id="Ut5-gb-QDa"/>
+                            <constraint firstItem="aYD-Jl-x0h" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="a6f-r1-rmK"/>
+                            <constraint firstItem="uza-i9-9mo" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="56" id="bsE-C5-ojs"/>
                             <constraint firstItem="X3G-jS-msb" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="ddn-7Q-EhU"/>
-                            <constraint firstItem="X3G-jS-msb" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="113" id="uMD-E1-jR6"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="WBf-GB-wek" secondAttribute="bottom" constant="20" id="izh-cO-sAi"/>
+                            <constraint firstItem="ErK-S6-CST" firstAttribute="top" secondItem="X3G-jS-msb" secondAttribute="bottom" constant="8" id="nS6-Ro-Dlv"/>
                             <constraint firstItem="ErK-S6-CST" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="56" id="xvE-eY-kA6"/>
-                            <constraint firstItem="ErK-S6-CST" firstAttribute="top" secondItem="X3G-jS-msb" secondAttribute="bottom" constant="26" id="yc8-ru-pyt"/>
-                            <constraint firstItem="WBf-GB-wek" firstAttribute="top" secondItem="ErK-S6-CST" secondAttribute="bottom" constant="8" id="zXI-VU-jsF"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
                     <connections>
                         <outlet property="txtFieldRoomNo" destination="ErK-S6-CST" id="JCX-aP-jKC"/>
+                        <outlet property="txtFieldUsername" destination="uza-i9-9mo" id="WsW-GB-Coa"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
@@ -61,7 +79,7 @@
         <!--View Controller Call-->
         <scene sceneID="MKJ-ct-Uo9">
             <objects>
-                <viewController storyboardIdentifier="ViewControllerCall" useStoryboardIdentifierAsRestorationIdentifier="YES" id="Mdn-Vf-LM2" customClass="ViewControllerCall" customModule="ChatApp" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="ViewControllerCall" useStoryboardIdentifierAsRestorationIdentifier="YES" id="Mdn-Vf-LM2" customClass="ViewControllerCall" customModule="RoomRtc" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="cjm-Hm-D4a">
                         <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -158,7 +176,7 @@
                         <outlet property="btnRejectCall" destination="fBL-BZ-N6X" id="NLz-4R-Frb"/>
                         <outlet property="btnStartCall" destination="QEd-DS-PvX" id="jUg-Vx-e31"/>
                         <outlet property="indicatorView" destination="rGv-O5-qew" id="7lt-Rv-M2n"/>
-                        <outlet property="labelParticipants" destination="2tA-3h-jez" id="gSc-rz-5di"/>
+                        <outlet property="uiLabelParticipants" destination="2tA-3h-jez" id="yqt-IN-6Lw"/>
                         <outlet property="videoViewA" destination="jHu-Ht-xaZ" id="oBu-az-3su"/>
                         <outlet property="videoViewB" destination="K6g-zC-qFw" id="YQR-65-MmX"/>
                     </connections>

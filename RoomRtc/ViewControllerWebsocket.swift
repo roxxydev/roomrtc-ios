@@ -3,20 +3,26 @@ import UIKit
 
 class ViewControllerWebsocket: UIViewController, WsSocketMsgDelegate {
     
-    var wsConnection: WsConnection?
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+    private var wsConnection: WsConnection?
+
+    final func setUpWsConnection (_ wsSessionId: String?) {
+        guard
+            let appDelegate = UIApplication.shared.delegate as? AppDelegate,
+            let sessionId = wsSessionId
+        else {
+            print("Error mission websocket session id")
             return
         }
-        
+
         wsConnection = appDelegate.wsConnection
-        let _ = wsConnection?.assignSocketMsgDelegate(self)
+
+        wsConnection?
+            .assignSocketMsgDelegate(self)
+            .connect(sessionId: sessionId)
     }
     
     func websocketDidReceiveMessage(_ text: String) {
+        print("websocketDidReceiveMessage: \(text)")
     }
     
     func websocketSendMsg(_ text: String) {

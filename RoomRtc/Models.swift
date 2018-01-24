@@ -2,6 +2,7 @@ import Foundation
 
 struct ModelChatAppMsg {
 
+    /// These are the room event message broadcasted from websocket
     enum RoomEvent {
         case entered, leave, calling, rejected, accepted, hangup
     }

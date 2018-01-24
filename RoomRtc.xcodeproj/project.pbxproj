@@ -11,7 +11,6 @@
 		86220495201646CD003DACE3 /* RoomRtc.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 86220493201646CD003DACE3 /* RoomRtc.xcdatamodeld */; };
 		86241462200DD66700C4147B /* ViewControllerWebsocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86241461200DD66700C4147B /* ViewControllerWebsocket.swift */; };
 		86241464200E552600C4147B /* ViewControllerCall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86241463200E552600C4147B /* ViewControllerCall.swift */; };
-		8624A5862014F15500973608 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8624A5852014F15500973608 /* Constants.swift */; };
 		862D7AF2200F166B0087362B /* RtcAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862D7AF1200F166B0087362B /* RtcAction.swift */; };
 		86394393200C5D7200D317CD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86394392200C5D7200D317CD /* AppDelegate.swift */; };
 		86394395200C5D7200D317CD /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86394394200C5D7200D317CD /* ViewController.swift */; };
@@ -26,6 +25,7 @@
 		863943C4200CA24D00D317CD /* Podfile in Resources */ = {isa = PBXBuildFile; fileRef = 863943C3200CA24D00D317CD /* Podfile */; };
 		863943C7200CBB4300D317CD /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863943C6200CBB4300D317CD /* Config.swift */; };
 		863B6299201093B0007D75DD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863B6298201093B0007D75DD /* Models.swift */; };
+		86475F572018F17D00AF482D /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86475F562018F17D00AF482D /* Constants.swift */; };
 		B83CC12C1EDC1A4DEB65B558 /* Pods_RoomRtc.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EB29C2F9614847E9A99BAACF /* Pods_RoomRtc.framework */; };
 /* End PBXBuildFile section */
 
@@ -36,7 +36,6 @@
 		86220494201646CD003DACE3 /* RoomRtc.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = RoomRtc.xcdatamodel; sourceTree = "<group>"; };
 		86241461200DD66700C4147B /* ViewControllerWebsocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewControllerWebsocket.swift; sourceTree = "<group>"; };
 		86241463200E552600C4147B /* ViewControllerCall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewControllerCall.swift; sourceTree = "<group>"; };
-		8624A5852014F15500973608 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		862D7AF1200F166B0087362B /* RtcAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RtcAction.swift; sourceTree = "<group>"; };
 		8639438F200C5D7200D317CD /* RoomRtc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoomRtc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		86394392200C5D7200D317CD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -53,6 +52,7 @@
 		863943C3200CA24D00D317CD /* Podfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Podfile; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
 		863943C6200CBB4300D317CD /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		863B6298201093B0007D75DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		86475F562018F17D00AF482D /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		EB29C2F9614847E9A99BAACF /* Pods_RoomRtc.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RoomRtc.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -104,7 +104,7 @@
 				863943BB200C8CCE00D317CD /* AppReducer.swift */,
 				863943B6200C8C6300D317CD /* AppState.swift */,
 				863943C6200CBB4300D317CD /* Config.swift */,
-				8624A5852014F15500973608 /* Constants.swift */,
+				86475F562018F17D00AF482D /* Constants.swift */,
 				863B6298201093B0007D75DD /* Models.swift */,
 				862D7AF1200F166B0087362B /* RtcAction.swift */,
 				86394394200C5D7200D317CD /* ViewController.swift */,
@@ -271,6 +271,7 @@
 				863B6299201093B0007D75DD /* Models.swift in Sources */,
 				863943C7200CBB4300D317CD /* Config.swift in Sources */,
 				863943BC200C8CCE00D317CD /* AppReducer.swift in Sources */,
+				86475F572018F17D00AF482D /* Constants.swift in Sources */,
 				863943C2200C926300D317CD /* Actions.swift in Sources */,
 				86394395200C5D7200D317CD /* ViewController.swift in Sources */,
 				86241464200E552600C4147B /* ViewControllerCall.swift in Sources */,
@@ -278,7 +279,6 @@
 				86394393200C5D7200D317CD /* AppDelegate.swift in Sources */,
 				863943B9200C8C6400D317CD /* AppState.swift in Sources */,
 				86220495201646CD003DACE3 /* RoomRtc.xcdatamodeld in Sources */,
-				8624A5862014F15500973608 /* Constants.swift in Sources */,
 				86241462200DD66700C4147B /* ViewControllerWebsocket.swift in Sources */,
 				863943B8200C8C6400D317CD /* WsDelegate.swift in Sources */,
 			);
