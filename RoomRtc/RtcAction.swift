@@ -24,7 +24,7 @@ enum CallState {
 /// Delegate for adding renderer for local and remote stream
 protocol RendererDelegate {
 
-    func onLocalStreamReadyForRender(localVideoTrack: RTCVideoTrack?)
+    func onLocalStreamReadyForRender()
     
     func onRemoteStreamReadyForRender(remoteVideoTracks: [RTCVideoTrack])
 }
@@ -52,9 +52,9 @@ protocol CallStateDelegate {
 
 fileprivate protocol MediaTrackDelegate {
     
-    func onVideoTrackCreated(_ videoTrack: RTCVideoTrack)
+    func onVideoTrackCreated(_ videoTrack: RTCVideoTrack?, _ videoSource: RTCVideoSource?, _ videoCaptureSession: AVCaptureSession?)
     
-    func onAudioTrackCreated(_ audioTrack: RTCAudioTrack)
+    func onAudioTrackCreated(_ audioTrack: RTCAudioTrack?, _ audioSource: RTCAudioSource?)
 }
 
 
@@ -63,7 +63,12 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
     private var rtcManager: RtcManager
     
     private var currVideoTrack: RTCVideoTrack?
+    private var currVideoSource: RTCVideoSource?
+    private var currVideoCaptureSession: AVCaptureSession?
+    
     private var currAudioTrack: RTCAudioTrack?
+    private var currAudioSource: RTCAudioSource?
+    
     private var localStream: RTCMediaStream?
     
     private var peerConn: RTCPeerConnection?
@@ -87,6 +92,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
         self.remoteVideoView = remoteVideoView
         self.sdpCreateDelegate = sdpCreateDelegate
         self.callStateDelegate = callStateDelegate
+        self.rtcManager.initDelegates(mediaTrackDelegate: self, callStateDelegate: callStateDelegate, rendererDelegate: self)
     }
     
     func setup() {
@@ -100,30 +106,8 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
         rtcManager.createAudioTrack()
     }
     
-    /// Clean renderer which will remove existing renderer view from existing
-    /// local and remote RTCMediaStream. Should be called if a new localstream
-    /// will be created or setup will be called.
-    func resetRenderer() {
-        removeLocalVideoRender()
-        removeRemoteVideoRender()
-    }
-    
-    // MARK - Cleanup of renderview and removing mediatrack from RTCMediaStream
-    
-    func removeLocalVideoRender() {
-        if let currVidTrack = localStream?.videoTracks.last {
-            localStream?.removeVideoTrack(currVidTrack)
-            
-            if let videoView = localVideoView {
-                for renderView in videoView.subviews {
-                    removeRenderer(videoTrack: currVidTrack, renderView: renderView)
-                    renderView.removeFromSuperview()
-                }
-            }
-        }
-    }
-    
-    func removeRemoteVideoRender() {
+    /// Clean renderer which will remove existing renderer view from existingremote RTCMediaStream.
+    func resetRemoteRenderer() {
         for stream in rtcManager.remoteRtcMediaStream {
             
             for remoteVideoTrack in stream.videoTracks {
@@ -138,7 +122,10 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
     
     fileprivate func setLocalDescription(sdp: RTCSessionDescription) {
         peerConn?.setLocalDescription(sdp, completionHandler: {
-            err in print("Error setting local description: \(err!.localizedDescription)")
+            error in
+            if let err = error {
+                print("Error setLocalDescription. \(err.localizedDescription)")
+            }
         })
     }
 
@@ -156,6 +143,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
                     print("Error creating sdp offer: \(error!.localizedDescription)")
                     return
                 }
+                print("sendOffer: \(sdpOffer)")
                 self.setLocalDescription(sdp: rtcSessionDesc!)
                 self.sdpCreateDelegate?.onSdpOfferCreated(sdpOffer: sdpOffer)
             }
@@ -211,12 +199,6 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
     
     // MARK: - Manage renderer
     
-    func setRenderer(videoTrack: RTCVideoTrack?, renderView: RTCEAGLVideoView) {
-        if let vidTrack = videoTrack {
-            vidTrack.add(renderView)
-        }
-    }
-    
     func removeRenderer(videoTrack: RTCVideoTrack?, renderView: UIView?) {
         if let vidTrack = videoTrack, let videoView = renderView as? RTCVideoRenderer {
             vidTrack.remove(videoView)
@@ -225,42 +207,60 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
     
     // MARK: - MediaTrackDelegate
     
-    fileprivate func onVideoTrackCreated(_ videoTrack: RTCVideoTrack) {
-        
-        
-        localStream?.addVideoTrack(videoTrack)
+    fileprivate func onVideoTrackCreated(_ videoTrack: RTCVideoTrack?, _ videoSource: RTCVideoSource?, _ videoCaptureSession: AVCaptureSession?) {
+        print("onVideoTrackCreated")
 
-        if let stream = localStream {
-            peerConn?.remove(stream)
-            peerConn?.add(stream)
+        if let currVidTrack = localStream?.videoTracks.last {
+            localStream?.removeVideoTrack(currVidTrack)
         }
         
-        onLocalStreamReadyForRender(localVideoTrack: localStream?.videoTracks.last)
+        currVideoTrack = videoTrack
+        currVideoSource = videoSource
+        currVideoCaptureSession = videoCaptureSession
+
+        if let track = currVideoTrack {
+            localStream?.addVideoTrack(track)
+            
+            if let stream = localStream {
+                peerConn?.remove(stream)
+                peerConn?.add(stream)
+            }
+            
+            onLocalStreamReadyForRender()
+        }
     }
     
-    fileprivate func onAudioTrackCreated(_ audioTrack: RTCAudioTrack) {
-        localStream?.addAudioTrack(audioTrack)
-
-        if let stream = localStream {
-            peerConn?.remove(stream)
-            peerConn?.add(stream)
+    fileprivate func onAudioTrackCreated(_ audioTrack: RTCAudioTrack?, _ audioSource: RTCAudioSource?) {
+        print("onAudioTrackCreated")
+        currAudioTrack = audioTrack
+        currAudioSource = currAudioTrack?.source
+        
+        if let track = audioTrack {
+            localStream?.addAudioTrack(track)
+            
+            if let stream = localStream {
+                peerConn?.remove(stream)
+                peerConn?.add(stream)
+            }
         }
     }
     
     // MARK: - RendererDelegate
     
-    func onLocalStreamReadyForRender(localVideoTrack: RTCVideoTrack?) {
-        removeLocalVideoRender()
-        let rtcVideoView: RTCEAGLVideoView = RTCEAGLVideoView(frame: CGRect(x: 0.0, y: 0.0, width: 100.0, height: 100.0))
+    func onLocalStreamReadyForRender() {
+        print("onLocalStreamReadyForRender")
+        let frame = localVideoView!.frame
+        let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect(x: 0.0, y: 0.0, width: frame.width, height: frame.height))
+        rtcVideoView.captureSession = currVideoCaptureSession
         localVideoView?.addSubview(rtcVideoView)
-        setRenderer(videoTrack: localVideoTrack, renderView: rtcVideoView)
     }
     
     func onRemoteStreamReadyForRender(remoteVideoTracks: [RTCVideoTrack]) {
-        removeRemoteVideoRender()
-        let rtcVideoView: RTCEAGLVideoView = RTCEAGLVideoView(frame: CGRect(x: 0.0, y: 0.0, width: 100.0, height: 100.0))
+        print("onRemoteStreamReadyForRender")
+        resetRemoteRenderer()
+        let rtcVideoView: RTCEAGLVideoView = RTCEAGLVideoView(frame: remoteVideoView!.frame)
         remoteVideoView?.addSubview(rtcVideoView)
-        setRenderer(videoTrack: remoteVideoTracks.last, renderView: rtcVideoView)
+        remoteVideoTracks.last?.add(rtcVideoView)
     }
     
     // MARK: - Video controls
@@ -278,18 +278,22 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
     }
     
     func muteVideoIn() {
-        let currMediaStream = peerConn!.localStreams[0]
-        self.currVideoTrack = currMediaStream.videoTracks[0];
-        currMediaStream.removeVideoTrack(currMediaStream.videoTracks[0])
-        peerConn?.remove(currMediaStream)
-        peerConn?.add(currMediaStream)
+//        let currMediaStream = peerConn!.localStreams[0]
+//        self.currVideoTrack = currMediaStream.videoTracks[0];
+//        currMediaStream.removeVideoTrack(currMediaStream.videoTracks[0])
+//        peerConn?.remove(currMediaStream)
+//        peerConn?.add(currMediaStream)
+        currVideoTrack?.isEnabled = false
+        currVideoCaptureSession?.stopRunning()
     }
     
     func unmuteVideoIn() {
-        let currMediaStream = peerConn!.localStreams[0]
-        currMediaStream.addVideoTrack(self.currVideoTrack!)
-        peerConn?.remove(currMediaStream)
-        peerConn?.add(currMediaStream)
+//        let currMediaStream = peerConn!.localStreams[0]
+//        currMediaStream.addVideoTrack(self.currVideoTrack!)
+//        peerConn?.remove(currMediaStream)
+//        peerConn?.add(currMediaStream)
+        currVideoTrack?.isEnabled = true
+        currVideoCaptureSession?.startRunning()
     }
     
     // MARK: - Audio controls
@@ -317,7 +321,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
 }
 
 
-fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate, RTCVideoCapturerDelegate {
+fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     
     let peerConnFactory: RTCPeerConnectionFactory = RTCPeerConnectionFactory.init()
     
@@ -327,7 +331,7 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate, RTCVideoCaptu
     
     var remoteRtcMediaStream = [RTCMediaStream]()
     
-    func initDelegates(_ mediaTrackDelegate: MediaTrackDelegate, _ callStateDelegate: CallStateDelegate, _ rendererDelegate: RendererDelegate) {
+    func initDelegates(mediaTrackDelegate: MediaTrackDelegate, callStateDelegate: CallStateDelegate, rendererDelegate: RendererDelegate) {
         self.mediaTrackDelegate = mediaTrackDelegate
         self.callStateDelegate = callStateDelegate
         self.rendererDelegate = rendererDelegate
@@ -345,6 +349,18 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate, RTCVideoCaptu
         let optionalConstraints = ["DtlsSrtpKeyAgreement": "true"]
         let constraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: optionalConstraints)
         return constraints
+    }
+    
+    func defaultCameraRtcMediaConstraints() -> RTCMediaConstraints {
+        let cameraConstraints = RTCMediaConstraints(mandatoryConstraints:nil,
+                                                    optionalConstraints:nil)
+        return cameraConstraints
+    }
+    
+    func defaultAudioRtcMediaConstraints() -> RTCMediaConstraints {
+        let audioConstraints = RTCMediaConstraints(mandatoryConstraints:nil,
+                                                    optionalConstraints:nil)
+        return audioConstraints
     }
     
     func defaultPeerAnswerConstraints() -> RTCMediaConstraints {
@@ -370,29 +386,29 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate, RTCVideoCaptu
     }
 
     func createAudioTrack() {
-        let audioTrack = peerConnFactory.audioTrack(withTrackId: "id_local_audio_track")
-        mediaTrackDelegate?.onAudioTrackCreated(audioTrack)
+        let audioSource = peerConnFactory.audioSource(with: defaultAudioRtcMediaConstraints())
+        let localAudioTrack = peerConnFactory.audioTrack(with: audioSource, trackId: "id_local_audio_track")
+        mediaTrackDelegate?.onAudioTrackCreated(localAudioTrack, audioSource)
     }
     
     func createLocalVideoTrack(position: AVCaptureDevice.Position) {
-        let captureDevice = getCaptureDevice(position: .front)!
-        let supportedActiveFormat = captureDevice.activeFormat
-        let fps = supportedActiveFormat.videoSupportedFrameRateRanges[0].maxFrameRate
+        print("createLocalVideoTrack")
+        if let captureDevice = getCaptureDevice(position: .front) {
+            let videoSource = peerConnFactory.videoSource()
+            let rtcCamVidCapturer = RTCCameraVideoCapturer(delegate: videoSource)
+            let videoTrack = peerConnFactory.videoTrack(with: videoSource, trackId: "id_local_video_track")
+            mediaTrackDelegate?.onVideoTrackCreated(videoTrack, videoSource, rtcCamVidCapturer.captureSession)
+            rtcCamVidCapturer.startCapture(with: captureDevice.device, format: captureDevice.format, fps: captureDevice.fps)
+        }
         
-        let rtcCamVidCapturer = RTCCameraVideoCapturer(delegate: self)
-        rtcCamVidCapturer.startCapture(with: captureDevice, format: supportedActiveFormat, fps: Int(fps))
-    }
-
-    func capturer(_ capturer: RTCVideoCapturer, didCapture frame: RTCVideoFrame) {
-        let videoSource = peerConnFactory.videoSource()
-        videoSource.capturer(capturer, didCapture: frame)
-        
-        let videoTrack = peerConnFactory.videoTrack(with: videoSource, trackId: "id_local_video_track")
-        mediaTrackDelegate?.onVideoTrackCreated(videoTrack)
+//        let videoSource = peerConnFactory.avFoundationVideoSource(with: defaultCameraRtcMediaConstraints())
+//        let localVideoTrack = peerConnFactory.videoTrack(with: videoSource, trackId: "id_local_video_track")
+//        mediaTrackDelegate?.onVideoTrackCreated(localVideoTrack, videoSource, videoSource.captureSession)
     }
     
     // MARK: - Camera to use
-    func getCaptureDevice(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+    func getCaptureDevice(position: AVCaptureDevice.Position) -> (device: AVCaptureDevice, format: AVCaptureDevice.Format, fps: Int)? {
+        /*
         var defaultVideoDevice: AVCaptureDevice?
 
         switch position {
@@ -404,13 +420,26 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate, RTCVideoCaptu
             if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: AVMediaType.video, position: .back) {
                 defaultVideoDevice = backCameraDevice
             }
+            break
         case .front, .unspecified:
             if let frontCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: AVMediaType.video, position: .front) {
                 defaultVideoDevice = frontCameraDevice
             }
+            break
+        }
+         
+        return defaultVideoDevice
+        */
+        
+        for avCaptureDevice in RTCCameraVideoCapturer.captureDevices() {
+            if avCaptureDevice.position == position {
+                let supportedActiveFormat = avCaptureDevice.activeFormat
+                let fps = supportedActiveFormat.videoSupportedFrameRateRanges[0].maxFrameRate
+                return (device: avCaptureDevice, format: supportedActiveFormat, fps: Int(fps))
+            }
         }
         
-        return defaultVideoDevice
+        return nil
     }
     
     // MARK: - RTCPeerConnectionDelegate

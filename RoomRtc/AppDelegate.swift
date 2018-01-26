@@ -5,8 +5,8 @@ import WebRTC
 
 let mainStore = Store<AppState>(
     reducer: appReducer,
-    state: nil
-)
+    state: nil,
+    middleware: [])
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {

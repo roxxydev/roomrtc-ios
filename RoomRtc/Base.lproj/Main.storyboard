@@ -18,7 +18,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="e.g. 1234" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="ErK-S6-CST">
+                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="1234" borderStyle="roundedRect" placeholder="e.g. 1234" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="ErK-S6-CST">
                                 <rect key="frame" x="56" y="214" width="208" height="30"/>
                                 <nil key="textColor"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
@@ -30,7 +30,7 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="e.g. juan" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="uza-i9-9mo">
+                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="John" borderStyle="roundedRect" placeholder="e.g. juan" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="uza-i9-9mo">
                                 <rect key="frame" x="56" y="133" width="208" height="30"/>
                                 <nil key="textColor"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
@@ -86,6 +86,7 @@
                         <subviews>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="jHu-Ht-xaZ">
                                 <rect key="frame" x="81.5" y="77" width="157" height="123"/>
+                                <color key="backgroundColor" red="0.10486975618875116" green="0.31700235570684465" blue="1" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="157" id="ObU-VM-NeW"/>
                                     <constraint firstAttribute="height" constant="123" id="k1G-Ki-yrl"/>
@@ -105,6 +106,7 @@
                             </label>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="K6g-zC-qFw">
                                 <rect key="frame" x="81.5" y="261" width="157" height="123"/>
+                                <color key="backgroundColor" red="0.0" green="0.25098040700000002" blue="0.50196081400000003" alpha="1" colorSpace="calibratedRGB"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="123" id="Jdc-MW-MUh"/>
                                     <constraint firstAttribute="width" constant="157" id="ORU-QE-GOY"/>
@@ -123,9 +125,8 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" hidesWhenStopped="YES" animating="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="rGv-O5-qew">
+                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="rGv-O5-qew">
                                 <rect key="frame" x="150" y="414" width="20" height="20"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </activityIndicatorView>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Gsi-kN-lHV">
                                 <rect key="frame" x="40" y="409" width="56" height="30"/>
@@ -143,9 +144,8 @@
                                     <action selector="onBtnRejectCallClicked:" destination="Mdn-Vf-LM2" eventType="touchUpInside" id="p4C-Fb-zII"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="1V7-Xf-ZmM">
-                                <rect key="frame" x="126" y="409" width="69" height="30"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="1V7-Xf-ZmM">
+                                <rect key="frame" x="132.5" y="409" width="56" height="30"/>
                                 <state key="normal" title="End Call"/>
                                 <connections>
                                     <action selector="onBtnEndCallClicked:" destination="Mdn-Vf-LM2" eventType="touchUpInside" id="IcN-hW-IjA"/>
@@ -155,8 +155,12 @@
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
                             <constraint firstItem="wiM-jK-f2Q" firstAttribute="top" secondItem="jHu-Ht-xaZ" secondAttribute="bottom" constant="24" id="5IC-7l-YSx"/>
+                            <constraint firstItem="1V7-Xf-ZmM" firstAttribute="top" secondItem="K6g-zC-qFw" secondAttribute="bottom" constant="25" id="ARo-mj-kbt"/>
                             <constraint firstItem="K6g-zC-qFw" firstAttribute="centerX" secondItem="cjm-Hm-D4a" secondAttribute="centerX" id="CEb-am-0uL"/>
+                            <constraint firstItem="rGv-O5-qew" firstAttribute="top" secondItem="K6g-zC-qFw" secondAttribute="bottom" constant="30" id="E3P-pl-Aco"/>
                             <constraint firstItem="2tA-3h-jez" firstAttribute="top" secondItem="TfO-jl-LAE" secondAttribute="top" id="F1Q-i3-8dN"/>
+                            <constraint firstItem="rGv-O5-qew" firstAttribute="centerX" secondItem="cjm-Hm-D4a" secondAttribute="centerX" id="Fwf-i0-yil"/>
+                            <constraint firstItem="1V7-Xf-ZmM" firstAttribute="centerX" secondItem="cjm-Hm-D4a" secondAttribute="centerX" id="KNO-MV-Yf3"/>
                             <constraint firstItem="jZj-KH-Amg" firstAttribute="centerX" secondItem="cjm-Hm-D4a" secondAttribute="centerX" id="Rze-FC-Nrv"/>
                             <constraint firstItem="QEd-DS-PvX" firstAttribute="top" secondItem="K6g-zC-qFw" secondAttribute="bottom" constant="25" id="Vab-uO-IhE"/>
                             <constraint firstItem="QEd-DS-PvX" firstAttribute="centerX" secondItem="cjm-Hm-D4a" secondAttribute="centerX" id="WQ6-8q-YG8"/>

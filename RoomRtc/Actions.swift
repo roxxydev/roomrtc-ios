@@ -6,19 +6,8 @@ struct ActionWsConnUpdate: Action {
 }
 
 struct ActionRoomStatusUpdate: Action {
-    var roomStatus: RoomStatus
-}
-
-struct ActionSdpUpdate: Action {
+    var roomStatus: RoomStatus = .standby
     var sdpOffer: String?
     var sdpAnswer: String?
+    var participants: [String]?
 }
-
-struct ActionSdpReset: Action {
-}
-
-struct ActionUpdateRoomParticipants: Action {
-    var someoneJoined: Bool
-    var someoneLeave: Bool
-}
-

@@ -4,36 +4,36 @@ import ReSwift
 struct AppState: StateType {
     var stateWsConnection: StateWsConnection
     var stateRoom: StateRoom
-    var stateSdp: StateSdp
-    var stateRoomParticipants: Int
 }
 
 /// Websocket connection state
-struct StateWsConnection {
+struct StateWsConnection: StateType {
     var connected: Bool
 }
 
 /**
  RoomStatus are statuses of app state for room.
- * standby      - state in which app is rendering local video but no call yet
- * userCalling  - app user initiated the call in which call button is pressed
- * incomingCall - callee receive an incoming call. This is from websocket broadcast message.
- * acceptCall   - calle accepted the incoming call, typically this is the event callee
+ * standby      - State in which app is rendering local video but no call yet
+ * userCalling  - App user initiated the call in which call button is pressed
+ * incomingCall - Callee receive an incoming call. This is from websocket broadcast message.
+ * acceptCall   - Callee accepted the incoming call, typically this is the event callee
                 press the accept call button
- * receiveAccepted - caller receive event that callee has accepted the call. This is from
+ * receiveAccepted - Caller receive event that callee has accepted the call. This is from
                 websocket broadcast message.
- * receiveRejected - caller receive event that callee has rejected the call. This is from
+ * receiveRejected - Caller receive event that callee has rejected the call. This is from
                 websocket broadcast message.
- * initializing - state in which both party has set the sdp and in ICE gathering state
+ * initializing - State in which both party has set the sdp and in ICE gathering state
  * initializingFailed - state where ICE failed, or call failed.
- * ongoingConnected - state in which ICE is connected or completed, call has started and
+ * ongoingConnected - State in which ICE is connected or completed, call has started and
                 temporary disconnect has been resolved(See ICE state disconnected).
- * ongoingDisconnected - state in which is is disconnected.
- * hangup       - state in which either caller or callee hangup the current ongoing call.
+ * ongoingDisconnected - State in which is is disconnected.
+ * hangup       - State in which either caller or callee hangup the current ongoing call.
                 Typically pressing end call button. This can be caller intiated action pressing
                 hangup call button or a websocket broadcast message which the other party
                 hangup the call already.
- * ended        - state in which the call ended, ICE state is closed. Return to standby state.
+ * ended        - State in which the call ended, ICE state is closed. Return to standby state.
+ * entered, leave - State in which no. of participants in room changed.
+ * sdpReset     - State in which sdp offer and answer are reset from app state.
  */
 enum RoomStatus {
     case standby,
@@ -43,16 +43,19 @@ enum RoomStatus {
     initializing,
     initializationFailed,
     ongoingConnected, ongoingDisconnected,
-    hangup, ended
+    hangup, ended,
+    entered, leave,
+    sdpReset
 }
 
 /// Describe state of the call.
-struct StateRoom {
+struct StateRoom: StateType, Equatable {
     var roomStatus: RoomStatus
-}
-
-/// State in which sdp are created for use.
-struct StateSdp {
     var sdpOffer: String?
     var sdpAnswer: String?
+    var participants: [String]?
+    
+    static func ==(lhs: StateRoom, rhs: StateRoom) -> Bool {
+        return lhs.roomStatus == rhs.roomStatus
+    }
 }

@@ -6,12 +6,12 @@ class WsDelegate: WebSocketDelegate {
     var socketMsgDelegate: WsSocketMsgDelegate?
 
     func websocketDidConnect(socket: WebSocketClient) {
-        print("Websocket connected")
+        print("websocket connected")
         mainStore.dispatch(ActionWsConnUpdate(isConnected: true))
     }
     
     func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
-        print("Websocket disconnected")
+        print("websocket disconnected")
         mainStore.dispatch(ActionWsConnUpdate(isConnected: false))
     }
     
@@ -20,7 +20,7 @@ class WsDelegate: WebSocketDelegate {
     }
     
     func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
-        print("Websocket receive data")
+        print("websocket received data")
     }
 }
 

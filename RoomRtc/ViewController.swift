@@ -1,9 +1,7 @@
 import UIKit
 import ReSwift
 
-class ViewController: UIViewController, StoreSubscriber {
-
-    typealias StoreSubscriberStateType = StateWsConnection
+class ViewController: UIViewController {
     
     @IBOutlet weak var txtFieldUsername: UITextField!
     @IBOutlet weak var txtFieldRoomNo: UITextField!
@@ -17,24 +15,5 @@ class ViewController: UIViewController, StoreSubscriber {
             let vsCall = storyBoard.instantiateViewController(withIdentifier: "ViewControllerCall") as! ViewControllerCall
             self.present(vsCall, animated: true, completion: nil)
         }
-    }
-    
-    func newState(state: StateWsConnection) {
-        print("newState state.connected: \(state.connected)")
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        mainStore.subscribe(self, transform: { subscription in
-
-            let sub = subscription as Subscription
-            
-            return sub.select({ state in
-                state.stateWsConnection
-            })
-        })
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        mainStore.unsubscribe(self)
     }
 }
