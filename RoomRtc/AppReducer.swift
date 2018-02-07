@@ -42,16 +42,12 @@ private func reducerStateRoom(state: StateRoom?, action: Action) -> StateRoom {
     case let action as ActionRoomStatusUpdate:
 
         state.roomStatus = action.roomStatus
-        switch state.roomStatus {
-        case .entered, .leave:
+        if state.roomStatus == .entered || state.roomStatus == .leave {
             state.participants = action.participants
-            break
-        case .sdpReset:
+        }
+        else if state.roomStatus == .sdpReset {
             state.sdpOffer = nil
             state.sdpAnswer = nil
-            break
-        default:
-            break
         }
         
         break

@@ -15,21 +15,35 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     @IBOutlet weak var btnRejectCall: UIButton!
     @IBOutlet weak var indicatorView: UIActivityIndicatorView!
 
+    let roomNo = UserDefaults.standard.string(forKey: Constants.userDefaultsRoom)
+    let username = UserDefaults.standard.string(forKey: Constants.userDefaultsUsername)
     let rtcAction = RtcAction()
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let wsSessionId = UserDefaults.standard.string(forKey: "username")
+        let wsSessionId = UserDefaults.standard.string(forKey: Constants.userDefaultsUsername)
         setUpWsConnection(wsSessionId)
 
         rtcAction.initRtcAction(localVideoView: videoViewA, remoteVideoView: videoViewB, sdpCreateDelegate: self, callStateDelegate: self)
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        mainStore.subscribe(self) {
+    override func viewDidAppear(_ animated: Bool) {
+        mainStore.subscribe(self)
+        {
             $0.select { state in state.stateRoom }
-                .skipRepeats()
+            .skipRepeats(
+                {
+                    oldStateRoom, newStateRoom in
+                    if newStateRoom.roomStatus == .entered || newStateRoom.roomStatus == .leave {
+                        return false
+                    }
+                    else if newStateRoom.roomStatus == oldStateRoom.roomStatus {
+                        return true
+                    }
+                    return false
+                }
+            )
         }
     }
     
@@ -40,18 +54,23 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     override func websocketDidReceiveMessage(_ text: String) {
         super.websocketDidReceiveMessage(text)
 
-        if let msg = try? JSONSerialization.jsonObject(with: text.data(using: .utf8)!) as? ModelChatAppMsg {
+        let decoder = JSONDecoder()
+        
+        if let modelChatAppMsg = try? decoder.decode(ModelChatAppMsg.self, from: text.data(using: .utf8)!) {
 
-            let sdpOffer: String? = msg?.sdpOffer
-            let sdpAnswer: String? = msg?.sdpAnswer
-            let participants: [String]? = msg?.participants
-            
-            if let roomEvent = msg?.roomEvent {
+            let sdpOffer: String? = modelChatAppMsg.sdpOffer
+            let sdpAnswer: String? = modelChatAppMsg.sdpAnswer
+            let participants: [String]? = modelChatAppMsg.participants
+
+            if let roomEvent = modelChatAppMsg.roomEvent {
+                print("websocketDidReceiveMessage called")
                 switch roomEvent {
                 case .entered:
+                    print("dispatch entered")
                     mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .entered, sdpOffer: nil, sdpAnswer: nil, participants: participants))
                     break
                 case .leave:
+                    print("dispatch leave")
                     mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .leave, sdpOffer: nil, sdpAnswer: nil, participants: participants))
                     break
                 case .calling:
@@ -76,7 +95,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     @IBAction func onBtnEndCallClicked(_ sender: Any) {
-        mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .hangup, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+        rtcAction.endCall()
     }
     
     @IBAction func onBtnAcceptCallClicked(_ sender: Any) {
@@ -88,12 +107,13 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func newState(state: StateRoom) {
+        print("newState: \(state)")
         let roomParticipants: [String]? = state.participants
         let roomStatus = state.roomStatus
         let sdpOffer = state.sdpOffer
         let sdpAnswer = state.sdpAnswer
         
-        print("stateRoom.roomStatus: \(roomStatus)")
+        print("roomStatus \(roomStatus)")
 
         switch roomStatus {
         case .standby:
@@ -144,7 +164,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
             break
         case .entered, .leave:
             let totalParticipants: Int = roomParticipants != nil ? roomParticipants!.count : 0
-            uiLabelParticipants.text? = Constants.txtlabelParticipants + String(totalParticipants)
+            self.uiLabelParticipants.text? = Constants.txtlabelParticipants + String(totalParticipants)
             break
         case .sdpReset:
             handleStateStandby()
@@ -153,36 +173,46 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateStandby() {
-        btnStartCall.isHidden = false
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.stopAnimating()
-        indicatorView.isHidden = true
+        self.btnStartCall.isHidden = false
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.stopAnimating()
+        self.indicatorView.isHidden = true
         rtcAction.resetRemoteRenderer()
         rtcAction.setup()
         rtcAction.startLocalStream()
     }
     
     func handleStateCalling() {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = false
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.isHidden = true
+        print("handleStateCalling")
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = false
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.isHidden = true
         rtcAction.startCall()
     }
     
     func handleStateIncoming() {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = false
-        btnRejectCall.isHidden = false
-        indicatorView.isHidden = true
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = false
+        self.btnRejectCall.isHidden = false
+        self.indicatorView.isHidden = true
     }
     
     func handleStateRejectCall() {
-        mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .sdpReset, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil)
+        ApiRoom.doApiCall(apiService: .rejectCall, modelChatAppMsg: modelChatAppMsg)
+        {
+            apiError, response in
+            if let error = apiError {
+                print("Failed rejecting the call. \(error.description ?? "")")
+                return
+            }
+            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .sdpReset, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+        }
     }
     
     func handleStateReceiveRejected() {
@@ -190,32 +220,32 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateAcceptCall(_ offer: String) {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.isHidden = false
-        indicatorView.startAnimating()
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.isHidden = false
+        self.indicatorView.startAnimating()
         rtcAction.acceptIncomingCall(sdpOffer: offer)
     }
     
     func handleStateReceiveAccepted(_ answer: String) {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.isHidden = false
-        indicatorView.startAnimating()
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.isHidden = false
+        self.indicatorView.startAnimating()
         rtcAction.receiveCallAccepted(sdpAnswer: answer)
     }
     
     func handleStateInitializing() {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.isHidden = false
-        indicatorView.startAnimating()
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.isHidden = false
+        self.indicatorView.startAnimating()
     }
     
     func handleStateInitializationFailed() {
@@ -223,24 +253,32 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateOnGoingConnected() {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.isHidden = true
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.isHidden = true
     }
     
     func handleStateOnGoingDisconnected() {
-        btnStartCall.isHidden = true
-        btnEndCall.isHidden = true
-        btnAcceptCall.isHidden = true
-        btnRejectCall.isHidden = true
-        indicatorView.isHidden = false
-        indicatorView.startAnimating()
+        self.btnStartCall.isHidden = true
+        self.btnEndCall.isHidden = true
+        self.btnAcceptCall.isHidden = true
+        self.btnRejectCall.isHidden = true
+        self.indicatorView.isHidden = false
+        self.indicatorView.startAnimating()
     }
     
     func handleStateEnded() {
-        rtcAction.endCall()
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil)
+        ApiRoom.doApiCall(apiService: .endCall, modelChatAppMsg: modelChatAppMsg)
+        {
+            apiError, response in
+            if let error = apiError {
+                print("Failed ending the call. \(error.description ?? "")")
+                return
+            }
+        }
         mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .sdpReset, sdpOffer: nil, sdpAnswer: nil, participants: nil))
     }
 }
@@ -251,11 +289,34 @@ extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate {
     // MARK - SdpCreateDelegate
     
     func onSdpOfferCreated(sdpOffer: String) {
-        // TODO Send sdp_offer to server
+        print("onSdpOfferCreated sdpOffer: \(sdpOffer)")
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: sdpOffer, sdpAnswer: nil)
+        ApiRoom.doApiCall(apiService: .callRoom, modelChatAppMsg: modelChatAppMsg)
+        {
+            apiError, response in
+            if let error = apiError {
+                print("Failed sending sdp offer. \(error.description ?? "")")
+                mainStore.dispatch(
+                    ActionRoomStatusUpdate(roomStatus: .initializationFailed,
+                                           sdpOffer: nil, sdpAnswer: nil,
+                                           participants: nil))
+            }
+        }
     }
     
     func onSdpAnswerCreated(sdpAnswer: String) {
-        // TODO Send sdp_answer to server
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: sdpAnswer)
+        ApiRoom.doApiCall(apiService: .answerCall, modelChatAppMsg: modelChatAppMsg)
+        {
+            apiError, response in
+            if let error = apiError {
+                print("Failed sending sdp answer. \(error.description ?? "")")
+                mainStore.dispatch(
+                    ActionRoomStatusUpdate(roomStatus: .initializationFailed,
+                                           sdpOffer: nil, sdpAnswer: nil,
+                                           participants: nil))
+            }
+        }
     }
     
     func onSdpAnswerSet() {
@@ -265,25 +326,27 @@ extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate {
     // MARK - CallStateDelegate
     
     func onCallStateChange(_ callState: CallState) {
-        switch callState {
-        case .checking:
-            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializing, sdpOffer: nil, sdpAnswer: nil, participants: nil))
-            break
-        case .failed:
-            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializationFailed, sdpOffer: nil, sdpAnswer: nil, participants: nil))
-            break
-        case .completed:
-            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializing, sdpOffer: nil, sdpAnswer: nil, participants: nil))
-            break;
-        case .connected:
-            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ongoingConnected, sdpOffer: nil, sdpAnswer: nil, participants: nil))
-            break;
-        case .disconnected:
-            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ongoingDisconnected, sdpOffer: nil, sdpAnswer: nil, participants: nil))
-            break;
-        case .closed:
-            mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ended, sdpOffer: nil, sdpAnswer: nil, participants: nil))
-            break
+        DispatchQueue.main.async {
+            switch callState {
+            case .checking:
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializing, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                break
+            case .failed:
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializationFailed, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                break
+            case .completed:
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializing, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                break;
+            case .connected:
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ongoingConnected, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                break;
+            case .disconnected:
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ongoingDisconnected, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                break;
+            case .closed:
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ended, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                break
+            }
         }
     }
 }

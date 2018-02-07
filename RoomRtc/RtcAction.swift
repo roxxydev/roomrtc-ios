@@ -143,7 +143,6 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
                     print("Error creating sdp offer: \(error!.localizedDescription)")
                     return
                 }
-                print("sendOffer: \(sdpOffer)")
                 self.setLocalDescription(sdp: rtcSessionDesc!)
                 self.sdpCreateDelegate?.onSdpOfferCreated(sdpOffer: sdpOffer)
             }
@@ -250,16 +249,21 @@ class RtcAction: MediaTrackDelegate, RendererDelegate {
     func onLocalStreamReadyForRender() {
         print("onLocalStreamReadyForRender")
         let frame = localVideoView!.frame
-        let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect(x: 0.0, y: 0.0, width: frame.width, height: frame.height))
+        
+        let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect.init())
+        rtcVideoView.frame = frame
+        rtcVideoView.frame.origin.x = 0
+        rtcVideoView.frame.origin.y = 0
+        self.localVideoView?.addSubview(rtcVideoView)
+        
         rtcVideoView.captureSession = currVideoCaptureSession
-        localVideoView?.addSubview(rtcVideoView)
     }
     
     func onRemoteStreamReadyForRender(remoteVideoTracks: [RTCVideoTrack]) {
         print("onRemoteStreamReadyForRender")
         resetRemoteRenderer()
         let rtcVideoView: RTCEAGLVideoView = RTCEAGLVideoView(frame: remoteVideoView!.frame)
-        remoteVideoView?.addSubview(rtcVideoView)
+        self.remoteVideoView?.addSubview(rtcVideoView)
         remoteVideoTracks.last?.add(rtcVideoView)
     }
     

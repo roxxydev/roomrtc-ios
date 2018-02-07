@@ -49,13 +49,9 @@ enum RoomStatus {
 }
 
 /// Describe state of the call.
-struct StateRoom: StateType, Equatable {
+struct StateRoom: StateType {
     var roomStatus: RoomStatus
     var sdpOffer: String?
     var sdpAnswer: String?
     var participants: [String]?
-    
-    static func ==(lhs: StateRoom, rhs: StateRoom) -> Bool {
-        return lhs.roomStatus == rhs.roomStatus
-    }
 }

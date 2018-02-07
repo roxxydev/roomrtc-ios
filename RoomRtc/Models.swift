@@ -1,23 +1,16 @@
 import Foundation
 
-struct ModelChatAppMsg {
+struct ModelChatAppMsg: Codable {
 
     /// These are the room event message broadcasted from websocket
-    enum RoomEvent {
+    enum RoomEvent: String, Codable {
         case entered, leave, calling, rejected, accepted, hangup
     }
     
+    var room: String?
     var roomEvent: RoomEvent?
+    var username: String?
+    var participants: [String]?
     var sdpOffer: String?
     var sdpAnswer: String?
-    var participants: [String]?
-    
-    init() {}
-    
-    init(json: [String: Any]) {
-        self.roomEvent = json["roomEvent"] as? RoomEvent
-        self.sdpOffer = json["sdpOffer"] as? String
-        self.sdpAnswer = json["sdpAnswer"] as? String
-        self.participants = json["participants"] as? [String]
-    }
 }
