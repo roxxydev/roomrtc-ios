@@ -152,7 +152,6 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func newState(state: StateRoom) {
-        print("newState: \(state)")
         let roomParticipants: [String]? = state.participants
         let roomStatus = state.roomStatus
         let sdpOffer = state.sdpOffer
@@ -271,32 +270,38 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateAcceptCall(_ offer: String) {
-        self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = true
-        self.btnAcceptCall.isHidden = true
-        self.btnRejectCall.isHidden = true
-        self.indicatorView.isHidden = false
-        self.indicatorView.startAnimating()
+        DispatchQueue.main.async {
+            self.btnStartCall.isHidden = true
+            self.btnEndCall.isHidden = true
+            self.btnAcceptCall.isHidden = true
+            self.btnRejectCall.isHidden = true
+            self.indicatorView.isHidden = false
+            self.indicatorView.startAnimating()
+        }
         rtcAction.acceptIncomingCall(sdpOffer: offer)
     }
     
     func handleStateReceiveAccepted(_ answer: String) {
-        self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = true
-        self.btnAcceptCall.isHidden = true
-        self.btnRejectCall.isHidden = true
-        self.indicatorView.isHidden = false
-        self.indicatorView.startAnimating()
+        DispatchQueue.main.async {
+            self.btnStartCall.isHidden = true
+            self.btnEndCall.isHidden = true
+            self.btnAcceptCall.isHidden = true
+            self.btnRejectCall.isHidden = true
+            self.indicatorView.isHidden = false
+            self.indicatorView.startAnimating()
+        }
         rtcAction.receiveCallAccepted(sdpAnswer: answer)
     }
     
     func handleStateInitializing() {
-        self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = true
-        self.btnAcceptCall.isHidden = true
-        self.btnRejectCall.isHidden = true
-        self.indicatorView.isHidden = false
-        self.indicatorView.startAnimating()
+        DispatchQueue.main.async {
+            self.btnStartCall.isHidden = true
+            self.btnEndCall.isHidden = true
+            self.btnAcceptCall.isHidden = true
+            self.btnRejectCall.isHidden = true
+            self.indicatorView.isHidden = false
+            self.indicatorView.startAnimating()
+        }
     }
     
     func handleStateInitializationFailed() {
@@ -304,20 +309,24 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateOnGoingConnected() {
-        self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = false
-        self.btnAcceptCall.isHidden = true
-        self.btnRejectCall.isHidden = true
-        self.indicatorView.isHidden = true
+        DispatchQueue.main.async {
+            self.btnStartCall.isHidden = true
+            self.btnEndCall.isHidden = false
+            self.btnAcceptCall.isHidden = true
+            self.btnRejectCall.isHidden = true
+            self.indicatorView.isHidden = true
+        }
     }
     
     func handleStateOnGoingDisconnected() {
-        self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = false
-        self.btnAcceptCall.isHidden = true
-        self.btnRejectCall.isHidden = true
-        self.indicatorView.isHidden = false
-        self.indicatorView.startAnimating()
+        DispatchQueue.main.async {
+            self.btnStartCall.isHidden = true
+            self.btnEndCall.isHidden = false
+            self.btnAcceptCall.isHidden = true
+            self.btnRejectCall.isHidden = true
+            self.indicatorView.isHidden = false
+            self.indicatorView.startAnimating()
+        }
     }
     
     func handleStateEnded() {
@@ -402,7 +411,7 @@ extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate, IceStateDel
                 mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializationFailed, sdpOffer: nil, sdpAnswer: nil, participants: nil))
                 break
             case .completed:
-                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .initializing, sdpOffer: nil, sdpAnswer: nil, participants: nil))
+                mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ongoingConnected, sdpOffer: nil, sdpAnswer: nil, participants: nil))
                 break;
             case .connected:
                 mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ongoingConnected, sdpOffer: nil, sdpAnswer: nil, participants: nil))

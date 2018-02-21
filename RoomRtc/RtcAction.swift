@@ -438,8 +438,8 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     }
     
     func createLocalVideoTrack(position: AVCaptureDevice.Position) {
-        print("createLocalVideoTrack")
         if let captureDevice = getCaptureDevice(position: position) {
+            print("createLocalVideoTrack")
             let videoSource = peerConnFactory.videoSource()
             let rtcCamVidCapturer = RTCCameraVideoCapturer(delegate: videoSource)
             let videoTrack = peerConnFactory.videoTrack(with: videoSource, trackId: "id_local_video_track")
@@ -484,7 +484,8 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
                 return (device: avCaptureDevice, format: supportedActiveFormat, fps: Int(fps))
             }
         }
-        
+
+        print("Error no capture device returned")
         return nil
     }
     
@@ -508,7 +509,6 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     }
     
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceConnectionState) {
-        print("PEERCONNECTION RTCIceConnectionState newState: \(newState)")
         var callState = CallState.checking
         
         switch newState {
@@ -534,6 +534,8 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
             callState = .checking
             break
         }
+
+        print("PEERCONNECTION RTCIceConnectionState newState: \(callState)")
 
         callStateDelegate?.onCallStateChange(callState)
     }
