@@ -19,7 +19,8 @@ struct ApiRoom {
         callRoom,
         answerCall,
         rejectCall,
-        endCall
+        endCall,
+        iceUpdate
         
         func getHttpMethod() -> HTTPMethod {
             return HTTPMethod.post
@@ -47,6 +48,9 @@ struct ApiRoom {
             break
         case .endCall:
             path += Config.pathCallEnd
+            break
+        case .iceUpdate:
+            path += Config.pathIceUpdate
             break
         }
         

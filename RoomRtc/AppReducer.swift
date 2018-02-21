@@ -13,7 +13,7 @@ private func initialWsConnectionState() -> StateWsConnection {
 }
 
 private func initialRoomState() -> StateRoom {
-    return StateRoom(roomStatus: .standby, sdpOffer: nil, sdpAnswer: nil, participants: [String]())
+    return StateRoom(roomStatus: .standby, sdpOffer: nil, sdpAnswer: nil, participants: [String](), ice: nil)
 }
 
 private func reducerWsConnection(state: StateWsConnection?, action: Action) -> StateWsConnection {
@@ -49,7 +49,17 @@ private func reducerStateRoom(state: StateRoom?, action: Action) -> StateRoom {
             state.sdpOffer = nil
             state.sdpAnswer = nil
         }
+        else if state.roomStatus == .incomingCall {
+            state.sdpOffer = action.sdpOffer
+        }
+        else if state.roomStatus == .receiveAccepted {
+            state.sdpAnswer = action.sdpAnswer
+        }
         
+        break
+    case let action as ActionRoomIceUpdate:
+        state.roomStatus = action.roomStatus
+        state.ice = action.ice
         break
     default:
         break

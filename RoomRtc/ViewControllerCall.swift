@@ -11,6 +11,9 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     @IBOutlet weak var videoViewB: UIView!
     @IBOutlet weak var btnStartCall: UIButton!
     @IBOutlet weak var btnEndCall: UIButton!
+    @IBOutlet weak var btnSwitchCamera: UIButton!
+    @IBOutlet weak var btnDisableVideo: UIButton!
+    @IBOutlet weak var btnMuteAudio: UIButton!
     @IBOutlet weak var btnAcceptCall: UIButton!
     @IBOutlet weak var btnRejectCall: UIButton!
     @IBOutlet weak var indicatorView: UIActivityIndicatorView!
@@ -19,13 +22,17 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     let username = UserDefaults.standard.string(forKey: Constants.userDefaultsUsername)
     let rtcAction = RtcAction()
     
+    var isCamFront  = true
+    var isVideoEnabled = true
+    var isAudioInMuted = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
         let wsSessionId = UserDefaults.standard.string(forKey: Constants.userDefaultsUsername)
         setUpWsConnection(wsSessionId)
 
-        rtcAction.initRtcAction(localVideoView: videoViewA, remoteVideoView: videoViewB, sdpCreateDelegate: self, callStateDelegate: self)
+        rtcAction.initRtcAction(localVideoView: videoViewA, remoteVideoView: videoViewB, sdpCreateDelegate: self, callStateDelegate: self, iceStateDelegate: self)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -61,6 +68,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
             let sdpOffer: String? = modelChatAppMsg.sdpOffer
             let sdpAnswer: String? = modelChatAppMsg.sdpAnswer
             let participants: [String]? = modelChatAppMsg.participants
+            let ice: ModelIceCandidate? = modelChatAppMsg.ice
 
             if let roomEvent = modelChatAppMsg.roomEvent {
                 print("websocketDidReceiveMessage called")
@@ -85,9 +93,46 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
                 case .hangup:
                     mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .ended, sdpOffer: nil, sdpAnswer: nil, participants: participants))
                     break
+                case .iceCandidate:
+                    mainStore.dispatch(ActionRoomIceUpdate(roomStatus: .iceUpdate, ice: ice))
+                    break
                 }
             }
         }
+    }
+    
+    @IBAction func onBtnSwitchCameraClicked(_ sender: Any) {
+        if isCamFront {
+            rtcAction.swapCamera(isFront: false)
+        }
+        else {
+            rtcAction.swapCamera(isFront: true)
+        }
+        isCamFront = !isCamFront
+    }
+
+    @IBAction func onBtnDisableVideoClicked(_ sender: Any) {
+        if isVideoEnabled {
+            rtcAction.muteVideoIn()
+            btnDisableVideo.setTitle(Constants.btnLabelEnableVideo, for: UIControlState.normal)
+        }
+        else {
+            rtcAction.unmuteVideoIn()
+            btnDisableVideo.setTitle(Constants.btnLabelDisableVideo, for: UIControlState.normal)
+        }
+        isVideoEnabled = !isVideoEnabled
+    }
+    
+    @IBAction func onBtnMuteAudioClicked(_ sender: Any) {
+        if isAudioInMuted {
+            rtcAction.unmuteAudioIn()
+            btnMuteAudio.setTitle(Constants.btnLabelMuteAudio, for: UIControlState.normal)
+        }
+        else {
+            rtcAction.muteAudioIn()
+            btnMuteAudio.setTitle(Constants.btnLabelUnmuteAudio, for: UIControlState.normal)
+        }
+        isAudioInMuted = !isAudioInMuted
     }
     
     @IBAction func onBtnStartCallClicked(_ sender: Any) {
@@ -112,6 +157,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
         let roomStatus = state.roomStatus
         let sdpOffer = state.sdpOffer
         let sdpAnswer = state.sdpAnswer
+        let iceCandidate = state.ice
         
         print("roomStatus \(roomStatus)")
 
@@ -166,6 +212,12 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
             let totalParticipants: Int = roomParticipants != nil ? roomParticipants!.count : 0
             self.uiLabelParticipants.text? = Constants.txtlabelParticipants + String(totalParticipants)
             break
+        case .iceUpdate:
+            guard let ice = iceCandidate else {
+                print("Error, received nil ICE candidate")
+                return
+            }
+            rtcAction.addIceCandidate(RTCIceCandidate(sdp: ice.candidate!, sdpMLineIndex: ice.sdpMLineIndex!, sdpMid: ice.sdpMid!))
         case .sdpReset:
             handleStateStandby()
             break
@@ -181,7 +233,6 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
         self.indicatorView.isHidden = true
         rtcAction.resetRemoteRenderer()
         rtcAction.setup()
-        rtcAction.startLocalStream()
     }
     
     func handleStateCalling() {
@@ -203,7 +254,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateRejectCall() {
-        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil)
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil, ice: nil)
         ApiRoom.doApiCall(apiService: .rejectCall, modelChatAppMsg: modelChatAppMsg)
         {
             apiError, response in
@@ -254,7 +305,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     
     func handleStateOnGoingConnected() {
         self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = true
+        self.btnEndCall.isHidden = false
         self.btnAcceptCall.isHidden = true
         self.btnRejectCall.isHidden = true
         self.indicatorView.isHidden = true
@@ -262,7 +313,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     
     func handleStateOnGoingDisconnected() {
         self.btnStartCall.isHidden = true
-        self.btnEndCall.isHidden = true
+        self.btnEndCall.isHidden = false
         self.btnAcceptCall.isHidden = true
         self.btnRejectCall.isHidden = true
         self.indicatorView.isHidden = false
@@ -270,7 +321,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     func handleStateEnded() {
-        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil)
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil, ice: nil)
         ApiRoom.doApiCall(apiService: .endCall, modelChatAppMsg: modelChatAppMsg)
         {
             apiError, response in
@@ -284,13 +335,29 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
 }
 
 
-extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate {
+extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate, IceStateDelegate {
+
+    func onIceStateCreated(_ ice: RTCIceCandidate) {
+        print("onIceStateCreated called, \ncandidate: \(ice.sdp)\nsdpMLineIndex: \(ice.sdpMLineIndex)\nsdpMid: \(ice.sdpMid)")
+        let iceCandidate = ModelIceCandidate(candidate: ice.sdp, sdpMLineIndex: ice.sdpMLineIndex, sdpMid: ice.sdpMid)
+        
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil, ice: iceCandidate)
+        
+        ApiRoom.doApiCall(apiService: .iceUpdate, modelChatAppMsg: modelChatAppMsg)
+        {
+            apiError, response in
+            if let error = apiError {
+                print("Failed sending ICE Candidate. \(error.description ?? "")")
+            }
+        }
+    }
+    
     
     // MARK - SdpCreateDelegate
     
     func onSdpOfferCreated(sdpOffer: String) {
         print("onSdpOfferCreated sdpOffer: \(sdpOffer)")
-        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: sdpOffer, sdpAnswer: nil)
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: sdpOffer, sdpAnswer: nil, ice: nil)
         ApiRoom.doApiCall(apiService: .callRoom, modelChatAppMsg: modelChatAppMsg)
         {
             apiError, response in
@@ -305,7 +372,7 @@ extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate {
     }
     
     func onSdpAnswerCreated(sdpAnswer: String) {
-        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: sdpAnswer)
+        let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: sdpAnswer, ice: nil)
         ApiRoom.doApiCall(apiService: .answerCall, modelChatAppMsg: modelChatAppMsg)
         {
             apiError, response in

@@ -14,10 +14,10 @@ class ViewController: UIViewController {
             let storyBoard: UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
             let vsCall = storyBoard.instantiateViewController(withIdentifier: "ViewControllerCall") as! ViewControllerCall
             
-            let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil)
+            let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil, ice: nil)
             ApiRoom.doApiCall(apiService: .roomEnter, modelChatAppMsg: modelChatAppMsg)
             {
-                (apiError, response) in
+                apiError, response in
 
                 if let error = apiError {
                     print("Failed sending sdp offer. \(error.description ?? "")")

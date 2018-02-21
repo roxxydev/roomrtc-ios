@@ -33,6 +33,7 @@ struct StateWsConnection: StateType {
                 hangup the call already.
  * ended        - State in which the call ended, ICE state is closed. Return to standby state.
  * entered, leave - State in which no. of participants in room changed.
+ * iceUpdate - State in which ice has been added.
  * sdpReset     - State in which sdp offer and answer are reset from app state.
  */
 enum RoomStatus {
@@ -45,6 +46,7 @@ enum RoomStatus {
     ongoingConnected, ongoingDisconnected,
     hangup, ended,
     entered, leave,
+    iceUpdate,
     sdpReset
 }
 
@@ -54,4 +56,5 @@ struct StateRoom: StateType {
     var sdpOffer: String?
     var sdpAnswer: String?
     var participants: [String]?
+    var ice: ModelIceCandidate?
 }

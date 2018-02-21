@@ -11,3 +11,8 @@ struct ActionRoomStatusUpdate: Action {
     var sdpAnswer: String?
     var participants: [String]?
 }
+
+struct ActionRoomIceUpdate: Action {
+    var roomStatus: RoomStatus = .iceUpdate
+    var ice: ModelIceCandidate?
+}
