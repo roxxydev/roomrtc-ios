@@ -64,6 +64,7 @@ struct ApiRoom {
         
         if let _ = modelChatAppMsg, let jsonData = try? JSONEncoder().encode(modelChatAppMsg) {
             parameters =  try? JSONSerialization.jsonObject(with: jsonData, options: .mutableContainers) as! [String: Any]
+            print("ApiRoom POST: \(String(describing: parameters))")
         }
         else {
             callback(ApiError(kind: .json, description: nil), nil)

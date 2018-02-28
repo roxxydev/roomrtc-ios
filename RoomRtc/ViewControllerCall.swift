@@ -21,6 +21,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     let roomNo = UserDefaults.standard.string(forKey: Constants.userDefaultsRoom)
     let username = UserDefaults.standard.string(forKey: Constants.userDefaultsUsername)
     let rtcAction = RtcAction()
+    var rtcStatsTimer: Timer?
     
     var isCamFront  = true
     var isVideoEnabled = true
@@ -302,6 +303,11 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
             self.indicatorView.isHidden = false
             self.indicatorView.startAnimating()
         }
+        
+        rtcStatsTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true, block: {
+            timer in
+            self.rtcAction.printRtcStatsReport()
+        })
     }
     
     func handleStateInitializationFailed() {
@@ -339,6 +345,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
                 return
             }
         }
+        
         mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .sdpReset, sdpOffer: nil, sdpAnswer: nil, participants: nil))
     }
 }
@@ -347,7 +354,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
 extension ViewControllerCall: SdpCreatedDelegate, CallStateDelegate, IceStateDelegate {
 
     func onIceStateCreated(_ ice: RTCIceCandidate) {
-        print("onIceStateCreated called, \ncandidate: \(ice.sdp)\nsdpMLineIndex: \(ice.sdpMLineIndex)\nsdpMid: \(ice.sdpMid)")
+        print("onIceStateCreated called, \ncandidate: \(ice.sdp)\nsdpMLineIndex: \(ice.sdpMLineIndex)\nsdpMid: \(String(describing: ice.sdpMid))")
         let iceCandidate = ModelIceCandidate(candidate: ice.sdp, sdpMLineIndex: ice.sdpMLineIndex, sdpMid: ice.sdpMid)
         
         let modelChatAppMsg = ModelChatAppMsg(room: roomNo, roomEvent: nil, username: username, participants: nil, sdpOffer: nil, sdpAnswer: nil, ice: iceCandidate)
