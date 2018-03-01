@@ -1,21 +1,21 @@
 PODS:
   - Alamofire (4.6.0)
-  - GoogleWebRTC (1.1.20913)
+  - GoogleWebRTC (1.1.22075)
   - ReSwift (4.0.1)
   - Starscream (3.0.4)
 
 DEPENDENCIES:
   - Alamofire (~> 4.6)
-  - GoogleWebRTC (~> 1.1)
+  - GoogleWebRTC (~> 1.1.22075)
   - ReSwift (~> 4.0)
   - Starscream (~> 3.0)
 
 SPEC CHECKSUMS:
   Alamofire: f41a599bd63041760b26d393ec1069d9d7b917f4
-  GoogleWebRTC: 4fedeaecffeea1b93d994616c1cc728fac5c9a13
+  GoogleWebRTC: 8ef415cc55e7bd1dd5665754447a8f87869333dc
   ReSwift: f4012c613e13da7398827fe5aebdb938eaed40a3
   Starscream: f5da93fe6984c77b694366bf7299b7dc63a76f26
 
-PODFILE CHECKSUM: 83e4ab61df56aab93530d714d4de9020d634ecf6
+PODFILE CHECKSUM: 26ef4044984bf33450378c2ca9492a11b60466da
 
 COCOAPODS: 1.3.1

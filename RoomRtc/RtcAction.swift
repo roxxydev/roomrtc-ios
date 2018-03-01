@@ -120,6 +120,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     
     func setup() {
         RTCSetMinDebugLogLevel(.error)
+        iceCandidates?.removeAll()
         peerConn = rtcManager.createPeerConnection()
         
         localStream = rtcManager.createLocalMediaStream(mediaStreamId: Config.mediaTrackLabel)
@@ -129,7 +130,18 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     }
     
     func addIceCandidate(_ ice: RTCIceCandidate) {
-        peerConn!.add(ice)
+        iceCandidates?.append(ice)
+    }
+    
+    private func addIceCandidatesToPeerConnection() {
+        guard let candidates = iceCandidates else {
+            print("Error trying to add empty iceCandidates to peerConnection")
+            return
+        }
+        for ice in candidates {
+            print("Adding ICE candidate to peer connection.\ncandidate: \(ice.sdp)\nsdpMLineIndex: \(ice.sdpMLineIndex)\nsdpMid: \(String(describing: ice.sdpMid))")
+            peerConn!.add(ice)
+        }
     }
     
     /// Clean renderer which will remove existing renderer view from existingremote RTCMediaStream.
@@ -161,6 +173,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
                 print("Error setting remote offer description: \(err?.localizedDescription ?? "")")
                 return
             }
+            self.addIceCandidatesToPeerConnection()
         })
     }
     
@@ -222,6 +235,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
                 print("Error setting remote answer description: \(err!.localizedDescription)")
                 return
             }
+            self.addIceCandidatesToPeerConnection()
             self.sdpCreateDelegate?.onSdpAnswerSet()
             self.printRtcStatsReport()
         })
@@ -379,10 +393,10 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     // MARK: - Video controls
     
     func swapCamera(isFront: Bool) {
-        guard localStream!.videoTracks[0] != nil else {
-            print("Error trying to swap camera, video track index 0 null")
-            return
-        }
+        //guard localStream!.videoTracks[0] != nil else {
+        //    print("Error trying to swap camera, video track index 0 null")
+        //    return
+        //}
         //localStream?.removeVideoTrack(videoTrack)
         
         let camPosition: AVCaptureDevice.Position = isFront ? .front : .back
@@ -533,6 +547,7 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
             let videoSource = peerConnFactory.videoSource()
             let rtcCamVidCapturer = RTCCameraVideoCapturer(delegate: videoSource)
 
+            /*
             // Set preset to medium suitable for audio and video calling
             if rtcCamVidCapturer.captureSession.canSetSessionPreset(.medium) {
                 rtcCamVidCapturer.captureSession.sessionPreset = .medium
@@ -549,7 +564,8 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
             if let captureDeviceInput = avCaptureDeviceInput {
                 rtcCamVidCapturer.captureSession.addInput(captureDeviceInput)
             }
-
+            */
+            
             rtcCamVidCapturer.startCapture(
                 with: captureDevice.device,
                 format: captureDevice.format,
@@ -578,7 +594,7 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
                 let supportedActiveFormat = avCaptureDevice.activeFormat
                 let maxFrameRate = supportedActiveFormat.videoSupportedFrameRateRanges[0].maxFrameRate
                 let minFrameRate = supportedActiveFormat.videoSupportedFrameRateRanges[0].minFrameRate
-                let midFrameRate = minFrameRate + ((maxFrameRate - minFrameRate)/2)
+                //let midFrameRate = minFrameRate + ((maxFrameRate - minFrameRate)/2)
                 let fps = maxFrameRate
                 
                 print("getCaptureDevice uniqueId:\(avCaptureDevice.uniqueID), supportedActiveFormat:\(supportedActiveFormat), fps:\(fps), deviceType:\(avCaptureDevice.deviceType), isConnected:\(avCaptureDevice.isConnected), localizedName:\(avCaptureDevice.localizedName)")
