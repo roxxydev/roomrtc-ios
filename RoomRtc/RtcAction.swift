@@ -73,6 +73,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
 
     /// The sdp offer/answer created which will be used when new ICE candidate generated passing to other party
     var sdp: String?
+    var sdpSessionDesc: RTCSessionDescription?
     
     private var rtcManager: RtcManager
     
@@ -93,7 +94,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     
     private var localVideoView: UIView?
     private var remoteVideoView: UIView?
-    private var iceCandidates: [RTCIceCandidate]?
+    private var iceCandidates: [RTCIceCandidate] = []
     
     
     init() {
@@ -111,7 +112,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
         self.sdpCreateDelegate = sdpCreateDelegate
         self.callStateDelegate = callStateDelegate
         self.iceStateDelegate = iceStateDelegate
-        self.rtcManager.initDelegates(mediaTrackDelegate: self,
+        self.rtcManager.setup(mediaTrackDelegate: self,
                                       callStateDelegate: callStateDelegate,
                                       iceStateDelegate: iceStateDelegate,
                                       rendererDelegate: self,
@@ -120,7 +121,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     
     func setup() {
         RTCSetMinDebugLogLevel(.error)
-        iceCandidates?.removeAll()
+        iceCandidates.removeAll()
         peerConn = rtcManager.createPeerConnection()
         
         localStream = rtcManager.createLocalMediaStream(mediaStreamId: Config.mediaTrackLabel)
@@ -130,15 +131,16 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     }
     
     func addIceCandidate(_ ice: RTCIceCandidate) {
-        iceCandidates?.append(ice)
+        iceCandidates.append(ice)
     }
     
     private func addIceCandidatesToPeerConnection() {
-        guard let candidates = iceCandidates else {
+        if iceCandidates.isEmpty {
             print("Error trying to add empty iceCandidates to peerConnection")
             return
         }
-        for ice in candidates {
+
+        for ice in iceCandidates {
             print("Adding ICE candidate to peer connection.\ncandidate: \(ice.sdp)\nsdpMLineIndex: \(ice.sdpMLineIndex)\nsdpMid: \(String(describing: ice.sdpMid))")
             peerConn!.add(ice)
         }
@@ -173,17 +175,23 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
                 print("Error setting remote offer description: \(err?.localizedDescription ?? "")")
                 return
             }
-            self.addIceCandidatesToPeerConnection()
         })
     }
     
     // MARK: - SignalingStateDelegate
     internal func onSignalingStateChange(_ signalingState: RTCSignalingState) {
-        if signalingState == .haveLocalOffer {
-            self.sdpCreateDelegate?.onSdpOfferCreated(sdpOffer: sdp!)
+        if signalingState.rawValue == RTCSignalingState.haveLocalOffer.rawValue {
+            print("onSignalingStateChange haveLocalOffer")
+            self.sdpCreateDelegate?.onSdpOfferCreated(sdpOffer: self.sdp!)
         }
-        else if signalingState == .haveRemoteOffer {
+        else if signalingState.rawValue == RTCSignalingState.haveRemoteOffer.rawValue {
+            print("onSignalingStateChange haveRemoteOffer")
+            self.addIceCandidatesToPeerConnection()
             self.createAnswer()
+        }
+        else if signalingState.rawValue == RTCSignalingState.stable.rawValue {
+            print("onSignalingStateChange stable")
+            self.sdpCreateDelegate?.onSdpAnswerCreated(sdpAnswer: self.sdp!)
         }
     }
     
@@ -192,6 +200,9 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
             error in
             if let err = error {
                 print("Error setLocalDescription. \(err.localizedDescription)")
+            }
+            else {
+                print("Local description set")
             }
         })
     }
@@ -203,8 +214,10 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
                 print("Error creating sdp offer: \(error!.localizedDescription)")
                 return
             }
+            print("sdp offer created")
             self.sdp = sdpOffer
-            self.setLocalDescription(sdp: rtcSessionDesc!)
+            self.sdpSessionDesc = rtcSessionDesc
+            self.setLocalDescription(sdp: self.sdpSessionDesc!)
         })
     }
     
@@ -217,10 +230,10 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
                     print("Error creating sdp answer: \(error!.localizedDescription)")
                     return
                 }
+                print("sdp answer created")
                 self.sdp = sdpAnswer
-                self.setLocalDescription(sdp: rtcSessionDesc!)
-                self.sdpCreateDelegate?.onSdpAnswerCreated(sdpAnswer: sdpAnswer)
-                
+                self.sdpSessionDesc = rtcSessionDesc
+                self.setLocalDescription(sdp: self.sdpSessionDesc!)
                 self.printRtcStatsReport()
             }
         )
@@ -452,6 +465,8 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
 fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     
     let peerConnFactory: RTCPeerConnectionFactory = RTCPeerConnectionFactory.init()
+    let decoderFactory = RTCDefaultVideoDecoderFactory.init()
+    let encoderFactory = RTCDefaultVideoEncoderFactory.init()
     
     var mediaTrackDelegate: MediaTrackDelegate?
     var callStateDelegate: CallStateDelegate?
@@ -461,16 +476,19 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     
     var remoteRtcMediaStream = [RTCMediaStream]()
     
-    func initDelegates(mediaTrackDelegate: MediaTrackDelegate,
+    func setup(mediaTrackDelegate: MediaTrackDelegate,
                        callStateDelegate: CallStateDelegate,
                        iceStateDelegate: IceStateDelegate,
                        rendererDelegate: RendererDelegate,
                        signalingStateDelegate: SignalingStateDelegate) {
+        
         self.mediaTrackDelegate = mediaTrackDelegate
         self.callStateDelegate = callStateDelegate
         self.iceStateDelegate = iceStateDelegate
         self.rendererDelegate = rendererDelegate
         self.signalingStateDelegate = signalingStateDelegate
+        
+        encoderFactory.preferredCodec = RTCVideoCodecInfo.init(name: kRTCVideoCodecVp8Name)
     }
     
     // MARK: - Creation of PeerConnection object
@@ -484,11 +502,13 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     func defaultRtcConfiguration() -> RTCConfiguration {
         let rtcConfig = RTCConfiguration.init()
         rtcConfig.bundlePolicy = RTCBundlePolicy.maxCompat
+        rtcConfig.iceServers = [defaultICEServer()]
         return rtcConfig
     }
     
     func defaultPeerConnectionConstraints() -> RTCMediaConstraints {
-        let constraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
+        let mandatoryConstraints = ["DtlsSrtpKeyAgreement": kRTCMediaConstraintsValueTrue]
+        let constraints = RTCMediaConstraints(mandatoryConstraints: mandatoryConstraints, optionalConstraints: nil)
         return constraints
     }
 
@@ -610,6 +630,7 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     // MARK: - RTCPeerConnectionDelegate
     
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange stateChanged: RTCSignalingState) {
+        print("PEERCONNECTION RTCSignalingState stateChanged: \(stateChanged.rawValue)")
         signalingStateDelegate?.onSignalingStateChange(stateChanged)
     }
     
@@ -659,6 +680,7 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     }
     
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceGatheringState) {
+        print("PEERCONNECTION RTCIceGatheringState newState: \(newState)")
     }
 
     // TODO Send to server to relay the newly gathered ICE candidate to other party
