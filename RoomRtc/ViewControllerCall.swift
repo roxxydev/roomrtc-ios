@@ -233,6 +233,7 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
         self.indicatorView.isHidden = true
         rtcAction.resetRemoteRenderer()
         rtcAction.setup()
+        rtcStatsTimer?.invalidate()
     }
     
     func handleStateCalling() {

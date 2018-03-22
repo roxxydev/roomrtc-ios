@@ -234,6 +234,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
                 self.sdp = sdpAnswer
                 self.sdpSessionDesc = rtcSessionDesc
                 self.setLocalDescription(sdp: self.sdpSessionDesc!)
+                self.printRtcRtpSenders()
                 self.printRtcStatsReport()
             }
         )
@@ -250,6 +251,7 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
             }
             self.addIceCandidatesToPeerConnection()
             self.sdpCreateDelegate?.onSdpAnswerSet()
+            self.printRtcRtpSenders()
             self.printRtcStatsReport()
         })
     }
@@ -270,17 +272,25 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     // MARK: - Print stats and rtp senders
     
     private func printRtcRtpSenders() {
+        print("printRtcRtpSenders")
         for rtcRtpSender in peerConn!.senders {
-            let mediaTrack = rtcRtpSender.track!
-            print("RTCRTPSender kind:\(mediaTrack.kind) trackId:\(mediaTrack.trackId) enabled:\(mediaTrack.isEnabled) readyState:\(mediaTrack.readyState == RTCMediaStreamTrackState.live ? "live": "ended")")
+ 
+            if let mediaTrack = rtcRtpSender.track {
             
-            for rtcRtpCodecParameterCodec in rtcRtpSender.parameters.codecs {
-                print("codec name: \(rtcRtpCodecParameterCodec.name)")
-                print("codec kind: \(rtcRtpCodecParameterCodec.kind)")
-            }
-            for rtcRtpCodecParameterEncoding in rtcRtpSender.parameters.encodings {
-                print("encoding isActive: \(rtcRtpCodecParameterEncoding.isActive)")
-                print("encoding ssrc: \(String(describing: rtcRtpCodecParameterEncoding.ssrc))")
+                print("RTCRTPSender kind:\(mediaTrack.kind) trackId:\(mediaTrack.trackId) enabled:\(mediaTrack.isEnabled) readyState:\(mediaTrack.readyState == RTCMediaStreamTrackState.live ? "live": "ended")")
+                
+                print("---------- codecs ----------")
+                for rtcRtpCodecParameterCodec in rtcRtpSender.parameters.codecs {
+                    print("codec name: \(rtcRtpCodecParameterCodec.name)")
+                    print("codec kind: \(rtcRtpCodecParameterCodec.kind)")
+                }
+
+                print("---------- encodings ----------")
+                for rtcRtpCodecParameterEncoding in rtcRtpSender.parameters.encodings {
+                    print("encoding isActive: \(rtcRtpCodecParameterEncoding.isActive)")
+                    print("encoding maxBitrateBps: \(String(describing: rtcRtpCodecParameterEncoding.maxBitrateBps))")
+                    print("encoding ssrc: \(String(describing: rtcRtpCodecParameterEncoding.ssrc))")
+                }
             }
         }
     }
@@ -335,6 +345,9 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
             localStream!.addAudioTrack(audioTrack!)
             print("localstream added audio track with track id \(currAudioTrack?.trackId ?? nil)")
             
+            //let rtpSender = peerConn!.add(audioTrack!, streamIds: [Config.mediaTrackAudioLabel])
+            //print("peerConn added audio rtpSender \(rtpSender)")
+            
             //if let _ = localStream {
             //    //peerConn?.remove(stream)
             //    if peerConn?.localStreams.contains(localStream!)
@@ -350,11 +363,13 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
         currVideoTrack = videoTrack
         currVideoSource = videoSource
         currVideoCaptureSession = videoCaptureSession
-        videoCaptureSession?.startRunning()
 
-        if let _ = currVideoTrack {
+        if let _ = videoTrack {
             localStream!.addVideoTrack(videoTrack!)
-            print("localstream added video track with track id \(String(describing: currVideoTrack?.trackId))")
+            print("localstream added audio track with track id \(currVideoTrack?.trackId ?? nil)")
+            
+            //let rtpSender = peerConn!.add(videoTrack!, streamIds: [Config.mediaTrackVideoLabel])
+            //print("peerConn added video rtpSender \(rtpSender)")
             
             //if let _ = localStream {
             //    //peerConn?.remove(stream)
@@ -362,33 +377,29 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
             //    print("peerconnection added stream in video")
             //}
             
+            peerConn!.add(localStream!)
             onLocalStreamReadyForRender()
-            
-            printRtcRtpSenders()
         }
-
-        for stream in peerConn!.localStreams {
-            if stream.streamId == Config.mediaTrackLabel {
-                peerConn!.remove(localStream!)
-            }
-        }
-        
-        peerConn!.add(localStream!)
     }
     
     // MARK: - RendererDelegate
     
     func onLocalStreamReadyForRender() {
         print("onLocalStreamReadyForRender")
-        let frame = localVideoView!.frame
 
-        let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect.init())
-        rtcVideoView.frame = frame
-        rtcVideoView.frame.origin.x = 0
-        rtcVideoView.frame.origin.y = 0
-        self.localVideoView?.addSubview(rtcVideoView)
+        DispatchQueue.main.async {
+            let frame = self.localVideoView!.frame
+
+            let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect.init())
+            rtcVideoView.frame = frame
+            rtcVideoView.frame.origin.x = 0
+            rtcVideoView.frame.origin.y = 0
+            self.localVideoView?.addSubview(rtcVideoView)
         
-        rtcVideoView.captureSession = currVideoCaptureSession
+            if let _ = self.currVideoCaptureSession {
+                rtcVideoView.captureSession = self.currVideoCaptureSession!
+            }
+        }
     }
     
     func onRemoteStreamReadyForRender(remoteVideoTracks: [RTCVideoTrack]) {
@@ -464,15 +475,14 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
 
 fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     
-    let peerConnFactory: RTCPeerConnectionFactory = RTCPeerConnectionFactory.init()
-    let decoderFactory = RTCDefaultVideoDecoderFactory.init()
-    let encoderFactory = RTCDefaultVideoEncoderFactory.init()
+    var peerConnFactory: RTCPeerConnectionFactory = RTCPeerConnectionFactory.init()
     
     var mediaTrackDelegate: MediaTrackDelegate?
     var callStateDelegate: CallStateDelegate?
     var iceStateDelegate: IceStateDelegate?
     var rendererDelegate: RendererDelegate?
     var signalingStateDelegate: SignalingStateDelegate?
+    var rtcCamVidCapturer: RTCCameraVideoCapturer?
     
     var remoteRtcMediaStream = [RTCMediaStream]()
     
@@ -481,14 +491,20 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
                        iceStateDelegate: IceStateDelegate,
                        rendererDelegate: RendererDelegate,
                        signalingStateDelegate: SignalingStateDelegate) {
-        
+
         self.mediaTrackDelegate = mediaTrackDelegate
         self.callStateDelegate = callStateDelegate
         self.iceStateDelegate = iceStateDelegate
         self.rendererDelegate = rendererDelegate
         self.signalingStateDelegate = signalingStateDelegate
-        
-        encoderFactory.preferredCodec = RTCVideoCodecInfo.init(name: kRTCVideoCodecVp8Name)
+
+        let decoderFactory = RTCDefaultVideoDecoderFactory.init()
+        let encoderFactory = RTCDefaultVideoEncoderFactory.init()
+
+        let videoCodedInfo = RTCVideoCodecInfo.init(name: "VP8")
+        encoderFactory.preferredCodec = videoCodedInfo
+
+        peerConnFactory = RTCPeerConnectionFactory.init(encoderFactory: encoderFactory, decoderFactory: decoderFactory)
     }
     
     // MARK: - Creation of PeerConnection object
@@ -507,23 +523,23 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     }
     
     func defaultPeerConnectionConstraints() -> RTCMediaConstraints {
-        let mandatoryConstraints = ["DtlsSrtpKeyAgreement": kRTCMediaConstraintsValueTrue]
+        let mandatoryConstraints = ["DtlsSrtpKeyAgreement": "true"]
         let constraints = RTCMediaConstraints(mandatoryConstraints: mandatoryConstraints, optionalConstraints: nil)
         return constraints
     }
 
     func defaultPeerOfferConstraints() -> RTCMediaConstraints {
         let mandatoryConstraints = [
-            kRTCMediaConstraintsOfferToReceiveAudio: kRTCMediaConstraintsValueTrue,
-            kRTCMediaConstraintsOfferToReceiveVideo: kRTCMediaConstraintsValueTrue]
+            "OfferToReceiveAudio": "true",
+            "OfferToReceiveVideo": "true"]
         let constraints = RTCMediaConstraints(mandatoryConstraints: mandatoryConstraints, optionalConstraints: nil)
         return constraints
     }
     
     func defaultPeerAnswerConstraints() -> RTCMediaConstraints {
         let mandatoryConstraints = [
-            kRTCMediaConstraintsOfferToReceiveAudio: kRTCMediaConstraintsValueTrue,
-            kRTCMediaConstraintsOfferToReceiveVideo: kRTCMediaConstraintsValueTrue]
+            "OfferToReceiveAudio": "true",
+            "OfferToReceiveVideo": "true"]
         let constraints = RTCMediaConstraints(mandatoryConstraints: mandatoryConstraints, optionalConstraints: nil)
         return constraints
     }
@@ -540,10 +556,9 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
         return audioConstraints
     }
     
-    
     func createPeerConnection() -> RTCPeerConnection {
         let peerConnection = peerConnFactory.peerConnection(with: defaultRtcConfiguration(), constraints: defaultPeerConnectionConstraints(), delegate: self)
-        
+        peerConnection.setConfiguration(defaultRtcConfiguration())
         return peerConnection
     }
     
@@ -564,29 +579,11 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
         if let captureDevice = getCaptureDevice(position: position) {
             print("createLocalVideoTrack")
 
+            captureDevice.device.unlockForConfiguration()
             let videoSource = peerConnFactory.videoSource()
-            let rtcCamVidCapturer = RTCCameraVideoCapturer(delegate: videoSource)
-
-            /*
-            // Set preset to medium suitable for audio and video calling
-            if rtcCamVidCapturer.captureSession.canSetSessionPreset(.medium) {
-                rtcCamVidCapturer.captureSession.sessionPreset = .medium
-            }
+            rtcCamVidCapturer = RTCCameraVideoCapturer.init(delegate: videoSource)
             
-            var avCaptureDeviceInput: AVCaptureDeviceInput? = nil
-            do {
-                avCaptureDeviceInput = try AVCaptureDeviceInput(device: captureDevice.device)
-            } catch {
-                print("Error setting device to AVCaptureDeviceInput")
-            }
-            
-            // Add input to capture session
-            if let captureDeviceInput = avCaptureDeviceInput {
-                rtcCamVidCapturer.captureSession.addInput(captureDeviceInput)
-            }
-            */
-            
-            rtcCamVidCapturer.startCapture(
+            rtcCamVidCapturer!.startCapture(
                 with: captureDevice.device,
                 format: captureDevice.format,
                 fps: captureDevice.fps,
@@ -599,9 +596,8 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
                     else {
                         print("RTCCameraVideoCapturer startCapture success")
                         let videoTrack = self.peerConnFactory.videoTrack(with: videoSource, trackId: Config.mediaTrackVideoLabel)
-                        DispatchQueue.main.async {
-                            self.mediaTrackDelegate?.onVideoTrackCreated(videoTrack, videoSource, rtcCamVidCapturer.captureSession)
-                        }
+                        self.mediaTrackDelegate?.onVideoTrackCreated(videoTrack, videoSource, self.rtcCamVidCapturer!.captureSession)
+                        self.rtcCamVidCapturer!.captureSession.startRunning()
                     }
                 })
         }
@@ -611,15 +607,26 @@ fileprivate class RtcManager: NSObject, RTCPeerConnectionDelegate {
     func getCaptureDevice(position: AVCaptureDevice.Position) -> (device: AVCaptureDevice, format: AVCaptureDevice.Format, fps: Int)? {
         for avCaptureDevice in RTCCameraVideoCapturer.captureDevices() {
             if avCaptureDevice.position == position {
-                let supportedActiveFormat = avCaptureDevice.activeFormat
-                let maxFrameRate = supportedActiveFormat.videoSupportedFrameRateRanges[0].maxFrameRate
-                let minFrameRate = supportedActiveFormat.videoSupportedFrameRateRanges[0].minFrameRate
-                //let midFrameRate = minFrameRate + ((maxFrameRate - minFrameRate)/2)
-                let fps = maxFrameRate
                 
-                print("getCaptureDevice uniqueId:\(avCaptureDevice.uniqueID), supportedActiveFormat:\(supportedActiveFormat), fps:\(fps), deviceType:\(avCaptureDevice.deviceType), isConnected:\(avCaptureDevice.isConnected), localizedName:\(avCaptureDevice.localizedName)")
+                var formatToUse = avCaptureDevice.activeFormat
+
+                for format in avCaptureDevice.formats {
+                    let height = format.highResolutionStillImageDimensions.height
+                    let width = format.highResolutionStillImageDimensions.width
+                    if width <= Config.vidResMaxWidth && width >= Config.vidResMinWidth
+                        && height <= Config.vidResMaxHeight && height >= Config.vidResMinHeight {
+                        formatToUse = format
+                    }
+                }
                 
-                return (device: avCaptureDevice, format: supportedActiveFormat, fps: Int(fps))
+                let maxFrameRate = formatToUse.videoSupportedFrameRateRanges[0].maxFrameRate
+                let minFrameRate = formatToUse.videoSupportedFrameRateRanges[0].minFrameRate
+                let midFrameRate = minFrameRate + ((maxFrameRate - minFrameRate)/2)
+                let fps = midFrameRate
+
+                print("getCaptureDevice uniqueId:\(avCaptureDevice.uniqueID), formatToUse:\(formatToUse), fps:\(fps), deviceType:\(avCaptureDevice.deviceType), isConnected:\(avCaptureDevice.isConnected), localizedName:\(avCaptureDevice.localizedName)")
+                
+                return (device: avCaptureDevice, format: formatToUse, fps: Int(fps))
             }
         }
 
