@@ -342,6 +342,11 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
         currAudioSource = currAudioTrack?.source
         
         if let _ = audioTrack {
+            
+            if let _ = localStream!.audioTracks.first {
+                localStream!.removeAudioTrack(localStream!.audioTracks.first!)
+            }
+            
             localStream!.addAudioTrack(audioTrack!)
             print("localstream added audio track with track id \(currAudioTrack?.trackId ?? nil)")
             
@@ -365,6 +370,11 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
         currVideoCaptureSession = videoCaptureSession
 
         if let _ = videoTrack {
+            
+            if let _ = localStream!.videoTracks.first {
+                localStream!.removeVideoTrack(localStream!.videoTracks.first!)
+            }
+
             localStream!.addVideoTrack(videoTrack!)
             print("localstream added audio track with track id \(currVideoTrack?.trackId ?? nil)")
             
@@ -377,7 +387,10 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
             //    print("peerconnection added stream in video")
             //}
             
-            peerConn!.add(localStream!)
+            if peerConn!.localStreams.first == nil {
+                peerConn!.add(localStream!)
+            }
+
             onLocalStreamReadyForRender()
         }
     }
