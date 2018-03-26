@@ -26,9 +26,15 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     var isCamFront  = true
     var isVideoEnabled = true
     var isAudioInMuted = false
+
+    var vidViewAOrigWidth: CGFloat = 0.0
+    var vidViewAOrigHeight: CGFloat = 0.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        vidViewAOrigWidth = UIScreen.main.bounds.width
+        vidViewAOrigHeight = UIScreen.main.bounds.height
 
         let wsSessionId = UserDefaults.standard.string(forKey: Constants.userDefaultsUsername)
         setUpWsConnection(wsSessionId)
@@ -231,6 +237,12 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
         self.btnRejectCall.isHidden = true
         self.indicatorView.stopAnimating()
         self.indicatorView.isHidden = true
+
+        UIView.animate(withDuration: 0.65, animations: {
+            self.videoViewA.frame = CGRect.init(x: 0, y: 0, width: self.vidViewAOrigWidth, height: self.vidViewAOrigHeight)
+            self.videoViewA.subviews.first?.frame = CGRect.init(x: 0, y: 0, width: self.vidViewAOrigWidth, height: self.vidViewAOrigHeight)
+        })
+        
         rtcAction.resetRemoteRenderer()
         rtcAction.setup()
         rtcStatsTimer?.invalidate()
@@ -304,6 +316,17 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
             self.indicatorView.isHidden = false
             self.indicatorView.startAnimating()
         }
+        
+        UIView.animate(withDuration: 0.65, animations: {
+            let newWidth = self.vidViewAOrigWidth * 0.35
+            let newHeight = self.vidViewAOrigHeight * 0.35
+            let newPosX = self.vidViewAOrigWidth - newWidth
+            let newPosY = self.vidViewAOrigHeight - newHeight
+            self.videoViewA.frame = CGRect.init(x: newPosX, y: newPosY, width: newWidth, height: newHeight)
+            if let _ = self.videoViewA.subviews.first {
+                self.videoViewA.subviews.first?.frame = CGRect.init(x: 0, y: 0, width: newWidth, height: newHeight)
+            }
+        })
         
         rtcStatsTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true, block: {
             timer in

@@ -399,19 +399,26 @@ class RtcAction: MediaTrackDelegate, RendererDelegate, SignalingStateDelegate {
     
     func onLocalStreamReadyForRender() {
         print("onLocalStreamReadyForRender")
-
-        DispatchQueue.main.async {
-            let frame = self.localVideoView!.frame
-
-            let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect.init())
-            rtcVideoView.frame = frame
-            rtcVideoView.frame.origin.x = 0
-            rtcVideoView.frame.origin.y = 0
-            self.localVideoView?.addSubview(rtcVideoView)
         
-            if let _ = self.currVideoCaptureSession {
-                rtcVideoView.captureSession = self.currVideoCaptureSession!
+        DispatchQueue.main.async {
+            guard let videoView = self.localVideoView?.subviews.first else {
+                let frame = self.localVideoView!.frame
+            
+                let rtcVideoView = RTCCameraPreviewView.init(frame: CGRect.init())
+                rtcVideoView.frame = frame
+                rtcVideoView.frame.origin.x = 0
+                rtcVideoView.frame.origin.y = 0
+                self.localVideoView?.addSubview(rtcVideoView)
+            
+                if let _ = self.currVideoCaptureSession {
+                    rtcVideoView.captureSession = self.currVideoCaptureSession!
+                }
+                
+                return
             }
+            
+            let previewView = videoView as! RTCCameraPreviewView
+            previewView.captureSession = self.currVideoCaptureSession!
         }
     }
     
