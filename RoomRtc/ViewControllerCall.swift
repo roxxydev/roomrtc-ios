@@ -4,7 +4,7 @@ import WebRTC
 
 class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     
-    typealias StoreSubscriberStateType = StateRoom
+    typealias StoreSubscriberStateType = (StateRoom, StateWsConnection)
     
     @IBOutlet weak var uiLabelParticipants: UILabel!
     @IBOutlet weak var videoViewA: UIView!
@@ -43,21 +43,22 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
     }
     
     override func viewDidAppear(_ animated: Bool) {
+        
         mainStore.subscribe(self)
         {
-            $0.select { state in state.stateRoom }
-            .skipRepeats(
-                {
-                    oldStateRoom, newStateRoom in
-                    if newStateRoom.roomStatus == .entered || newStateRoom.roomStatus == .leave {
-                        return false
-                    }
-                    else if newStateRoom.roomStatus == oldStateRoom.roomStatus {
-                        return true
-                    }
-                    return false
-                }
-            )
+            $0.select { ($0.stateRoom, $0.stateWsConnection) }
+//            .skipRepeats(
+//                {
+//                    oldStateRoom, newStateRoom in
+//                    if newStateRoom.roomStatus == .entered || newStateRoom.roomStatus == .leave {
+//                        return false
+//                    }
+//                    else if newStateRoom.roomStatus == oldStateRoom.roomStatus {
+//                        return true
+//                    }
+//                    return false
+//                }
+//            )
         }
     }
     
@@ -158,9 +159,12 @@ class ViewControllerCall: ViewControllerWebsocket, StoreSubscriber {
         mainStore.dispatch(ActionRoomStatusUpdate(roomStatus: .rejectCall, sdpOffer: nil, sdpAnswer: nil, participants: nil))
     }
     
-    func newState(state: StateRoom) {
-        let roomParticipants: [String]? = state.participants
-        let roomStatus = state.roomStatus
+    func _newState(state: StateWsConnection) {
+        
+    }
+    func newState(state: (StateRoom, StateWsConnection)) {
+        let roomParticipants: [String]? = state.0.participants
+        let roomStatus = state.0.participants
         let sdpOffer = state.sdpOffer
         let sdpAnswer = state.sdpAnswer
         let iceCandidate = state.ice
